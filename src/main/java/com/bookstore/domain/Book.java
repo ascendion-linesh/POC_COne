@@ -1,194 +1,136 @@
 package com.bookstore.domain;
 
-import java.util.List;
-
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.OneToMany;
-import javax.persistence.Transient;
-
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import java.io.Serializable;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
-public class Book {
+@Table(name = "book", indexes = {
+    @Index(name = "idx_book_title", columnList = "title"),
+    @Index(name = "idx_book_author", columnList = "author"),
+    @Index(name = "idx_book_category", columnList = "category"),
+    @Index(name = "idx_book_isbn", columnList = "isbn")
+})
+@Data
+@EqualsAndHashCode(exclude = {"bookToCartItemList"})
+public class Book implements Serializable {
 
-	@Id
-	@GeneratedValue(strategy=GenerationType.AUTO)
-	private Long id;
-	private String title;
-	private String author;
-	private String publisher;
-	private String publicationDate;
-	private String language;
-	private String category;
-	private int numberOfPages;
-	private String format;
-	private int isbn;
-	private double shippingWeight;
-	private double listPrice;
-	private double ourPrice;
-	private boolean active=true;
-	
-	@Column(columnDefinition="text")
-	private String description;
-	private int inStockNumber;
-	
-	@Transient
-	private MultipartFile bookImage;
-	
-	
-	@OneToMany(mappedBy = "book")
-	@JsonIgnore
-	private List<BookToCartItem> bookToCartItemList;
+    private static final long serialVersionUID = 1L;
 
-	public Long getId() {
-		return id;
-	}
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", nullable = false, updatable = false)
+    private Long id;
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    @NotBlank(message = "Title is required")
+    @Size(min = 1, max = 255, message = "Title must be between 1 and 255 characters")
+    @Column(name = "title", nullable = false, length = 255)
+    private String title;
 
-	public String getTitle() {
-		return title;
-	}
+    @NotBlank(message = "Author is required")
+    @Size(min = 1, max = 100, message = "Author must be between 1 and 100 characters")
+    @Pattern(regexp = "^[a-zA-Z\\s.'-]+$", message = "Author name contains invalid characters")
+    @Column(name = "author", nullable = false, length = 100)
+    private String author;
 
-	public void setTitle(String title) {
-		this.title = title;
-	}
+    @NotBlank(message = "Publisher is required")
+    @Size(max = 100, message = "Publisher must not exceed 100 characters")
+    @Column(name = "publisher", nullable = false, length = 100)
+    private String publisher;
 
-	public String getAuthor() {
-		return author;
-	}
+    @NotBlank(message = "Publication date is required")
+    @Size(max = 50, message = "Publication date must not exceed 50 characters")
+    @Column(name = "publication_date", nullable = false, length = 50)
+    private String publicationDate;
 
-	public void setAuthor(String author) {
-		this.author = author;
-	}
+    @NotBlank(message = "Language is required")
+    @Size(min = 2, max = 50, message = "Language must be between 2 and 50 characters")
+    @Column(name = "language", nullable = false, length = 50)
+    private String language;
 
-	public String getPublisher() {
-		return publisher;
-	}
+    @NotBlank(message = "Category is required")
+    @Size(max = 100, message = "Category must not exceed 100 characters")
+    @Column(name = "category", nullable = false, length = 100)
+    private String category;
 
-	public void setPublisher(String publisher) {
-		this.publisher = publisher;
-	}
+    @NotNull(message = "Number of pages is required")
+    @Min(value = 1, message = "Number of pages must be at least 1")
+    @Max(value = 10000, message = "Number of pages must not exceed 10000")
+    @Column(name = "number_of_pages", nullable = false)
+    private Integer numberOfPages;
 
-	public String getPublicationDate() {
-		return publicationDate;
-	}
+    @NotBlank(message = "Format is required")
+    @Size(max = 50, message = "Format must not exceed 50 characters")
+    @Column(name = "format", nullable = false, length = 50)
+    private String format;
 
-	public void setPublicationDate(String publicationDate) {
-		this.publicationDate = publicationDate;
-	}
+    @NotBlank(message = "ISBN is required")
+    @Pattern(regexp = "^(?:ISBN(?:-1[03])?:? )?(?=[0-9X]{10}$|(?=(?:[0-9]+[- ]){3})[- 0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[- ]){4})[- 0-9]{17}$)(?:97[89][- ]?)?[0-9]{1,5}[- ]?[0-9]+[- ]?[0-9]+[- ]?[0-9X]$", 
+             message = "ISBN must be valid ISBN-10 or ISBN-13 format")
+    @Column(name = "isbn", unique = true, nullable = false, length = 20)
+    private String isbn;
 
-	public String getLanguage() {
-		return language;
-	}
+    @NotNull(message = "Shipping weight is required")
+    @DecimalMin(value = "0.01", message = "Shipping weight must be at least 0.01")
+    @DecimalMax(value = "100.00", message = "Shipping weight must not exceed 100.00")
+    @Digits(integer = 3, fraction = 2, message = "Shipping weight must have at most 3 integer digits and 2 decimal places")
+    @Column(name = "shipping_weight", nullable = false, precision = 5, scale = 2)
+    private BigDecimal shippingWeight;
 
-	public void setLanguage(String language) {
-		this.language = language;
-	}
+    @NotNull(message = "List price is required")
+    @DecimalMin(value = "0.00", message = "List price must be at least 0.00")
+    @DecimalMax(value = "999999.99", message = "List price must not exceed 999999.99")
+    @Digits(integer = 8, fraction = 2, message = "List price must have at most 8 integer digits and 2 decimal places")
+    @Column(name = "list_price", nullable = false, precision = 10, scale = 2)
+    private BigDecimal listPrice;
 
-	public String getCategory() {
-		return category;
-	}
+    @NotNull(message = "Our price is required")
+    @DecimalMin(value = "0.00", message = "Our price must be at least 0.00")
+    @DecimalMax(value = "999999.99", message = "Our price must not exceed 999999.99")
+    @Digits(integer = 8, fraction = 2, message = "Our price must have at most 8 integer digits and 2 decimal places")
+    @Column(name = "our_price", nullable = false, precision = 10, scale = 2)
+    private BigDecimal ourPrice;
 
-	public void setCategory(String category) {
-		this.category = category;
-	}
+    @Column(name = "active", nullable = false)
+    private boolean active = true;
 
-	public int getNumberOfPages() {
-		return numberOfPages;
-	}
+    @Size(max = 5000, message = "Description must not exceed 5000 characters")
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
 
-	public void setNumberOfPages(int numberOfPages) {
-		this.numberOfPages = numberOfPages;
-	}
+    @NotNull(message = "Stock quantity is required")
+    @Min(value = 0, message = "Stock quantity must be at least 0")
+    @Max(value = 1000000, message = "Stock quantity must not exceed 1000000")
+    @Column(name = "in_stock_number", nullable = false)
+    private Integer inStockNumber;
 
-	public String getFormat() {
-		return format;
-	}
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
-	public void setFormat(String format) {
-		this.format = format;
-	}
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
 
-	public int getIsbn() {
-		return isbn;
-	}
+    @Transient
+    private MultipartFile bookImage;
 
-	public void setIsbn(int isbn) {
-		this.isbn = isbn;
-	}
+    @JsonIgnore
+    @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    private List<BookToCartItem> bookToCartItemList;
 
-	public double getShippingWeight() {
-		return shippingWeight;
-	}
-
-	public void setShippingWeight(double shippingWeight) {
-		this.shippingWeight = shippingWeight;
-	}
-
-	public double getListPrice() {
-		return listPrice;
-	}
-
-	public void setListPrice(double listPrice) {
-		this.listPrice = listPrice;
-	}
-
-	public double getOurPrice() {
-		return ourPrice;
-	}
-
-	public void setOurPrice(double ourPrice) {
-		this.ourPrice = ourPrice;
-	}
-
-	public boolean isActive() {
-		return active;
-	}
-
-	public void setActive(boolean active) {
-		this.active = active;
-	}
-
-	public String getDescription() {
-		return description;
-	}
-
-	public void setDescription(String description) {
-		this.description = description;
-	}
-
-	public int getInStockNumber() {
-		return inStockNumber;
-	}
-
-	public void setInStockNumber(int inStockNumber) {
-		this.inStockNumber = inStockNumber;
-	}
-
-	public MultipartFile getBookImage() {
-		return bookImage;
-	}
-
-	public void setBookImage(MultipartFile bookImage) {
-		this.bookImage = bookImage;
-	}
-
-	public List<BookToCartItem> getBookToCartItemList() {
-		return bookToCartItemList;
-	}
-
-	public void setBookToCartItemList(List<BookToCartItem> bookToCartItemList) {
-		this.bookToCartItemList = bookToCartItemList;
-	}
-	
-	
+    @Transient
+    public boolean isInStock() {
+        return inStockNumber != null && inStockNumber > 0;
+    }
 }
