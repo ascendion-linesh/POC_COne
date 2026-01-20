@@ -1,100 +1,74 @@
 package com.bookstore.domain;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.OneToOne;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Data;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.io.Serializable;
+import java.time.LocalDateTime;
 
 @Entity
-public class UserBilling {
+@Table(name = "user_billing")
+@Data
+public class UserBilling implements Serializable {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.AUTO)
-	private Long id;
-	private String userBillingName;
-	private String userBillingStreet1;
-	private String userBillingStreet2;
-	private String userBillingCity;
-	private String userBillingState;
-	private String userBillingCountry;
-	private String userBillingZipcode;
-	
-	@OneToOne(cascade=CascadeType.ALL)
-	private UserPayment userPayment;
+    private static final long serialVersionUID = 1L;
 
-	public Long getId() {
-		return id;
-	}
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", nullable = false, updatable = false)
+    private Long id;
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    @NotBlank(message = "Billing name is required")
+    @Size(max = 100, message = "Billing name must not exceed 100 characters")
+    @Pattern(regexp = "^[a-zA-Z\\s'-]+$", message = "Billing name contains invalid characters")
+    @Column(name = "user_billing_name", nullable = false, length = 100)
+    private String userBillingName;
 
-	public String getUserBillingName() {
-		return userBillingName;
-	}
+    @NotBlank(message = "Street address is required")
+    @Size(max = 200, message = "Street address must not exceed 200 characters")
+    @Column(name = "user_billing_street1", nullable = false, length = 200)
+    private String userBillingStreet1;
 
-	public void setUserBillingName(String userBillingName) {
-		this.userBillingName = userBillingName;
-	}
+    @Size(max = 200, message = "Street address line 2 must not exceed 200 characters")
+    @Column(name = "user_billing_street2", length = 200)
+    private String userBillingStreet2;
 
-	public String getUserBillingStreet1() {
-		return userBillingStreet1;
-	}
+    @NotBlank(message = "City is required")
+    @Size(max = 100, message = "City must not exceed 100 characters")
+    @Pattern(regexp = "^[a-zA-Z\\s'-]+$", message = "City contains invalid characters")
+    @Column(name = "user_billing_city", nullable = false, length = 100)
+    private String userBillingCity;
 
-	public void setUserBillingStreet1(String userBillingStreet1) {
-		this.userBillingStreet1 = userBillingStreet1;
-	}
+    @NotBlank(message = "State is required")
+    @Size(max = 100, message = "State must not exceed 100 characters")
+    @Pattern(regexp = "^[a-zA-Z\\s'-]+$", message = "State contains invalid characters")
+    @Column(name = "user_billing_state", nullable = false, length = 100)
+    private String userBillingState;
 
-	public String getUserBillingStreet2() {
-		return userBillingStreet2;
-	}
+    @NotBlank(message = "Country is required")
+    @Size(min = 2, max = 2, message = "Country must be 2-letter ISO code")
+    @Pattern(regexp = "^[A-Z]{2}$", message = "Country must be valid 2-letter ISO code")
+    @Column(name = "user_billing_country", nullable = false, length = 2)
+    private String userBillingCountry;
 
-	public void setUserBillingStreet2(String userBillingStreet2) {
-		this.userBillingStreet2 = userBillingStreet2;
-	}
+    @NotBlank(message = "Zipcode is required")
+    @Pattern(regexp = "^[0-9]{5,10}$", message = "Zipcode must be 5-10 digits")
+    @Column(name = "user_billing_zipcode", nullable = false, length = 10)
+    private String userBillingZipcode;
 
-	public String getUserBillingCity() {
-		return userBillingCity;
-	}
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
-	public void setUserBillingCity(String userBillingCity) {
-		this.userBillingCity = userBillingCity;
-	}
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
 
-	public String getUserBillingState() {
-		return userBillingState;
-	}
-
-	public void setUserBillingState(String userBillingState) {
-		this.userBillingState = userBillingState;
-	}
-
-	public String getUserBillingCountry() {
-		return userBillingCountry;
-	}
-
-	public void setUserBillingCountry(String userBillingCountry) {
-		this.userBillingCountry = userBillingCountry;
-	}
-
-	public String getUserBillingZipcode() {
-		return userBillingZipcode;
-	}
-
-	public void setUserBillingZipcode(String userBillingZipcode) {
-		this.userBillingZipcode = userBillingZipcode;
-	}
-
-	public UserPayment getUserPayment() {
-		return userPayment;
-	}
-
-	public void setUserPayment(UserPayment userPayment) {
-		this.userPayment = userPayment;
-	}
-	
-	
+    @JsonIgnore
+    @OneToOne(mappedBy = "userBilling", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private UserPayment userPayment;
 }
