@@ -1,136 +1,95 @@
 package com.bookstore.domain;
 
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.io.Serializable;
 import java.math.BigDecimal;
-import java.util.Date;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.ManyToOne;
-import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
-import javax.persistence.Table;
-
 @Entity
-@Table(name="user_order")
-public class Order {
-	
-	@Id
-	@GeneratedValue(strategy = GenerationType.AUTO)
-	private Long id;
-	private Date orderDate;
-	private Date shippingDate;
-	private String shippingMethod;
-	private String orderStatus;
-	private BigDecimal orderTotal;
-	
-	@OneToMany(mappedBy = "order", cascade=CascadeType.ALL )
-	private List<CartItem> cartItemList;
-	
-	@OneToOne(cascade=CascadeType.ALL)
-	private ShippingAddress shippingAddress;
-	
-	@OneToOne(cascade=CascadeType.ALL)
-	private BillingAddress billingAddress;
-	
-	@OneToOne(cascade=CascadeType.ALL)
-	private Payment payment;
-	
-	@ManyToOne
-	private User user;
+@Table(name = "user_order", indexes = {
+    @Index(name = "idx_order_date", columnList = "order_date"),
+    @Index(name = "idx_order_status", columnList = "order_status")
+})
+@Data
+@EqualsAndHashCode(exclude = {"cartItemList", "user"})
+public class Order implements Serializable {
 
-	public Long getId() {
-		return id;
-	}
+    private static final long serialVersionUID = 1L;
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", nullable = false, updatable = false)
+    private Long id;
 
-	public Date getOrderDate() {
-		return orderDate;
-	}
+    @NotNull(message = "Order date is required")
+    @Column(name = "order_date", nullable = false)
+    private LocalDate orderDate;
 
-	public void setOrderDate(Date orderDate) {
-		this.orderDate = orderDate;
-	}
+    @NotNull(message = "Shipping date is required")
+    @Column(name = "shipping_date", nullable = false)
+    private LocalDate shippingDate;
 
-	public Date getShippingDate() {
-		return shippingDate;
-	}
+    @NotBlank(message = "Shipping method is required")
+    @Size(max = 100, message = "Shipping method must not exceed 100 characters")
+    @Column(name = "shipping_method", nullable = false, length = 100)
+    private String shippingMethod;
 
-	public void setShippingDate(Date shippingDate) {
-		this.shippingDate = shippingDate;
-	}
+    @NotBlank(message = "Order status is required")
+    @Size(max = 50, message = "Order status must not exceed 50 characters")
+    @Pattern(regexp = "^(PENDING|PROCESSING|SHIPPED|DELIVERED|CANCELLED|REFUNDED)$", 
+             message = "Order status must be valid")
+    @Column(name = "order_status", nullable = false, length = 50)
+    private String orderStatus;
 
-	public String getShippingMethod() {
-		return shippingMethod;
-	}
+    @NotNull(message = "Order total is required")
+    @DecimalMin(value = "0.00", message = "Order total must be at least 0.00")
+    @DecimalMax(value = "999999.99", message = "Order total must not exceed 999999.99")
+    @Digits(integer = 8, fraction = 2, message = "Order total must have at most 8 integer digits and 2 decimal places")
+    @Column(name = "order_total", nullable = false, precision = 10, scale = 2)
+    private BigDecimal orderTotal;
 
-	public void setShippingMethod(String shippingMethod) {
-		this.shippingMethod = shippingMethod;
-	}
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
-	public String getOrderStatus() {
-		return orderStatus;
-	}
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
 
-	public void setOrderStatus(String orderStatus) {
-		this.orderStatus = orderStatus;
-	}
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<CartItem> cartItemList = new ArrayList<>();
 
-	public BigDecimal getOrderTotal() {
-		return orderTotal;
-	}
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
+    @JoinColumn(name = "shipping_address_id")
+    private ShippingAddress shippingAddress;
 
-	public void setOrderTotal(BigDecimal orderTotal) {
-		this.orderTotal = orderTotal;
-	}
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
+    @JoinColumn(name = "billing_address_id")
+    private BillingAddress billingAddress;
 
-	public List<CartItem> getCartItemList() {
-		return cartItemList;
-	}
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
+    @JoinColumn(name = "payment_id")
+    private Payment payment;
 
-	public void setCartItemList(List<CartItem> cartItemList) {
-		this.cartItemList = cartItemList;
-	}
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
-	public ShippingAddress getShippingAddress() {
-		return shippingAddress;
-	}
-
-	public void setShippingAddress(ShippingAddress shippingAddress) {
-		this.shippingAddress = shippingAddress;
-	}
-
-	public Payment getPayment() {
-		return payment;
-	}
-
-	public void setPayment(Payment payment) {
-		this.payment = payment;
-	}
-	
-	
-
-	public BillingAddress getBillingAddress() {
-		return billingAddress;
-	}
-
-	public void setBillingAddress(BillingAddress billingAddress) {
-		this.billingAddress = billingAddress;
-	}
-
-	public User getUser() {
-		return user;
-	}
-
-	public void setUser(User user) {
-		this.user = user;
-	}
-	
-	
+    @Transient
+    public int getTotalItems() {
+        return cartItemList != null ? cartItemList.stream()
+            .mapToInt(CartItem::getQty)
+            .sum() : 0;
+    }
 }
