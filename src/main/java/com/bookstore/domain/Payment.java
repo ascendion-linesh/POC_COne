@@ -1,113 +1,98 @@
 package com.bookstore.domain;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.OneToOne;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Data;
+import lombok.ToString;
+import org.hibernate.annotations.ColumnTransformer;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.io.Serializable;
+import java.time.LocalDateTime;
 
 @Entity
-public class Payment {
+@Table(name = "payment")
+@Data
+@ToString(exclude = {"cardNumber", "cvc"})
+public class Payment implements Serializable {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.AUTO)
-	private Long id;
-	private String type;
-	private String cardName;
-	private String cardNumber;
-	private int expiryMonth;
-	private int expiryYear;
-	private int cvc;
-	private String holderName;
-	
-	@OneToOne
-	private Order order;
-	
-	@OneToOne(cascade = CascadeType.ALL, mappedBy = "userPayment")
-	private UserBilling userBilling;
+    private static final long serialVersionUID = 1L;
 
-	public Long getId() {
-		return id;
-	}
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", nullable = false, updatable = false)
+    private Long id;
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    @NotBlank(message = "Payment type is required")
+    @Size(max = 50, message = "Payment type must not exceed 50 characters")
+    @Column(name = "type", nullable = false, length = 50)
+    private String type;
 
-	public String getType() {
-		return type;
-	}
+    @NotBlank(message = "Card name is required")
+    @Size(max = 100, message = "Card name must not exceed 100 characters")
+    @Column(name = "card_name", nullable = false, length = 100)
+    private String cardName;
 
-	public void setType(String type) {
-		this.type = type;
-	}
+    @NotBlank(message = "Card number is required")
+    @Pattern(regexp = "^[0-9]{13,19}$", message = "Card number must be 13-19 digits")
+    @JsonIgnore
+    @ColumnTransformer(
+        read = "pgp_sym_decrypt(card_number::bytea, current_setting('app.encryption_key'))",
+        write = "pgp_sym_encrypt(?, current_setting('app.encryption_key'))"
+    )
+    @Column(name = "card_number", nullable = false, columnDefinition = "TEXT")
+    private String cardNumber;
 
-	public String getCardName() {
-		return cardName;
-	}
+    @NotNull(message = "Expiry month is required")
+    @Min(value = 1, message = "Expiry month must be between 1 and 12")
+    @Max(value = 12, message = "Expiry month must be between 1 and 12")
+    @Column(name = "expiry_month", nullable = false)
+    private Integer expiryMonth;
 
-	public void setCardName(String cardName) {
-		this.cardName = cardName;
-	}
+    @NotNull(message = "Expiry year is required")
+    @Min(value = 2024, message = "Expiry year must be current or future year")
+    @Max(value = 2050, message = "Expiry year must not exceed 2050")
+    @Column(name = "expiry_year", nullable = false)
+    private Integer expiryYear;
 
-	public String getCardNumber() {
-		return cardNumber;
-	}
+    @NotBlank(message = "CVC is required")
+    @Pattern(regexp = "^[0-9]{3,4}$", message = "CVC must be 3 or 4 digits")
+    @JsonIgnore
+    @ColumnTransformer(
+        read = "pgp_sym_decrypt(cvc::bytea, current_setting('app.encryption_key'))",
+        write = "pgp_sym_encrypt(?, current_setting('app.encryption_key'))"
+    )
+    @Column(name = "cvc", nullable = false, columnDefinition = "TEXT")
+    private String cvc;
 
-	public void setCardNumber(String cardNumber) {
-		this.cardNumber = cardNumber;
-	}
+    @NotBlank(message = "Holder name is required")
+    @Size(min = 2, max = 100, message = "Holder name must be between 2 and 100 characters")
+    @Pattern(regexp = "^[a-zA-Z\\s'-]+$", message = "Holder name contains invalid characters")
+    @Column(name = "holder_name", nullable = false, length = 100)
+    private String holderName;
 
-	public int getExpiryMonth() {
-		return expiryMonth;
-	}
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
-	public void setExpiryMonth(int expiryMonth) {
-		this.expiryMonth = expiryMonth;
-	}
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
 
-	public int getExpiryYear() {
-		return expiryYear;
-	}
+    @JsonIgnore
+    @OneToOne(mappedBy = "payment", fetch = FetchType.LAZY)
+    private Order order;
 
-	public void setExpiryYear(int expiryYear) {
-		this.expiryYear = expiryYear;
-	}
+    @OneToOne(cascade = CascadeType.ALL, mappedBy = "userPayment", fetch = FetchType.LAZY)
+    private UserBilling userBilling;
 
-	public int getCvc() {
-		return cvc;
-	}
-
-	public void setCvc(int cvc) {
-		this.cvc = cvc;
-	}
-
-	public String getHolderName() {
-		return holderName;
-	}
-
-	public void setHolderName(String holderName) {
-		this.holderName = holderName;
-	}
-
-	public Order getOrder() {
-		return order;
-	}
-
-	public void setOrder(Order order) {
-		this.order = order;
-	}
-
-	public UserBilling getUserBilling() {
-		return userBilling;
-	}
-
-	public void setUserBilling(UserBilling userBilling) {
-		this.userBilling = userBilling;
-	}
-	
-	
+    @Transient
+    public String getMaskedCardNumber() {
+        if (cardNumber == null || cardNumber.length() < 4) {
+            return "****";
+        }
+        return "************" + cardNumber.substring(cardNumber.length() - 4);
+    }
 }
