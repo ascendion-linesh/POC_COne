@@ -1,14 +1,17 @@
 package com.bookstore.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import com.bookstore.service.impl.UserSecurityService;
@@ -16,8 +19,9 @@ import com.bookstore.utility.SecurityUtility;
 
 @Configuration
 @EnableWebSecurity
-@EnableGlobalMethodSecurity(prePostEnabled=true)
-public class SecurityConfig extends WebSecurityConfigurerAdapter {
+@EnableMethodSecurity(prePostEnabled=true)
+public class SecurityConfig {
+	
 	@Autowired
 	private Environment env;
 
@@ -43,32 +47,42 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 			"/faq",
 			"/searchByCategory",
 			"/searchBook"
-			
 	};
 
-	@Override
-	protected void configure(HttpSecurity http) throws Exception {
+	@Bean
+	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 		http
-			.authorizeRequests().
-		/*	antMatchers("/**").*/
-			antMatchers(PUBLIC_MATCHERS).
-			permitAll().anyRequest().authenticated();
+			.authorizeHttpRequests(auth -> auth
+				.requestMatchers(PUBLIC_MATCHERS).permitAll()
+				.anyRequest().authenticated()
+			)
+			.csrf(csrf -> csrf.disable())
+			.cors(cors -> cors.disable())
+			.formLogin(form -> form
+				.failureUrl("/login?error")
+				.loginPage("/login")
+				.permitAll()
+			)
+			.logout(logout -> logout
+				.logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
+				.logoutSuccessUrl("/?logout")
+				.deleteCookies("remember-me")
+				.permitAll()
+			)
+			.rememberMe(remember -> remember
+				.key("uniqueAndSecret")
+			);
 
-		http
-			.csrf().disable().cors().disable()
-			.formLogin().failureUrl("/login?error")
-			/*.defaultSuccessUrl("/")*/
-			.loginPage("/login").permitAll()
-			.and()
-			.logout().logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
-			.logoutSuccessUrl("/?logout").deleteCookies("remember-me").permitAll()
-			.and()
-			.rememberMe();
+		return http.build();
+	}
+
+	@Bean
+	public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
+		return authConfig.getAuthenticationManager();
 	}
 
 	@Autowired
 	public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
 		auth.userDetailsService(userSecurityService).passwordEncoder(passwordEncoder());
 	}
-
 }
