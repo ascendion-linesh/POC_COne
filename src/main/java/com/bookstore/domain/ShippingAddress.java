@@ -1,116 +1,74 @@
 package com.bookstore.domain;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.OneToOne;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Data;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.io.Serializable;
+import java.time.LocalDateTime;
 
 @Entity
-public class ShippingAddress {
-	@Id
-	@GeneratedValue(strategy = GenerationType.AUTO)
-	private Long id;
-	private String ShippingAddressName;
-	private String ShippingAddressStreet1;
-	private String ShippingAddressStreet2;
-	private String ShippingAddressCity;
-	private String ShippingAddressState;
-	private String ShippingAddressCountry;
-	private String ShippingAddressZipcode;
-	
-	
-	@OneToOne
-	private Order order;
+@Table(name = "shipping_address")
+@Data
+public class ShippingAddress implements Serializable {
 
+    private static final long serialVersionUID = 1L;
 
-	public Long getId() {
-		return id;
-	}
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", nullable = false, updatable = false)
+    private Long id;
 
+    @NotBlank(message = "Recipient name is required")
+    @Size(max = 100, message = "Recipient name must not exceed 100 characters")
+    @Pattern(regexp = "^[a-zA-Z\\s'-]+$", message = "Recipient name contains invalid characters")
+    @Column(name = "shipping_address_name", nullable = false, length = 100)
+    private String shippingAddressName;
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    @NotBlank(message = "Street address is required")
+    @Size(max = 200, message = "Street address must not exceed 200 characters")
+    @Column(name = "shipping_address_street1", nullable = false, length = 200)
+    private String shippingAddressStreet1;
 
+    @Size(max = 200, message = "Street address line 2 must not exceed 200 characters")
+    @Column(name = "shipping_address_street2", length = 200)
+    private String shippingAddressStreet2;
 
-	public String getShippingAddressName() {
-		return ShippingAddressName;
-	}
+    @NotBlank(message = "City is required")
+    @Size(max = 100, message = "City must not exceed 100 characters")
+    @Pattern(regexp = "^[a-zA-Z\\s'-]+$", message = "City contains invalid characters")
+    @Column(name = "shipping_address_city", nullable = false, length = 100)
+    private String shippingAddressCity;
 
+    @NotBlank(message = "State is required")
+    @Size(max = 100, message = "State must not exceed 100 characters")
+    @Pattern(regexp = "^[a-zA-Z\\s'-]+$", message = "State contains invalid characters")
+    @Column(name = "shipping_address_state", nullable = false, length = 100)
+    private String shippingAddressState;
 
-	public void setShippingAddressName(String shippingAddressName) {
-		ShippingAddressName = shippingAddressName;
-	}
+    @NotBlank(message = "Country is required")
+    @Size(min = 2, max = 2, message = "Country must be 2-letter ISO code")
+    @Pattern(regexp = "^[A-Z]{2}$", message = "Country must be valid 2-letter ISO code")
+    @Column(name = "shipping_address_country", nullable = false, length = 2)
+    private String shippingAddressCountry;
 
+    @NotBlank(message = "Zipcode is required")
+    @Pattern(regexp = "^[0-9]{5,10}$", message = "Zipcode must be 5-10 digits")
+    @Column(name = "shipping_address_zipcode", nullable = false, length = 10)
+    private String shippingAddressZipcode;
 
-	public String getShippingAddressStreet1() {
-		return ShippingAddressStreet1;
-	}
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
 
-	public void setShippingAddressStreet1(String shippingAddressStreet1) {
-		ShippingAddressStreet1 = shippingAddressStreet1;
-	}
-
-
-	public String getShippingAddressStreet2() {
-		return ShippingAddressStreet2;
-	}
-
-
-	public void setShippingAddressStreet2(String shippingAddressStreet2) {
-		ShippingAddressStreet2 = shippingAddressStreet2;
-	}
-
-
-	public String getShippingAddressCity() {
-		return ShippingAddressCity;
-	}
-
-
-	public void setShippingAddressCity(String shippingAddressCity) {
-		ShippingAddressCity = shippingAddressCity;
-	}
-
-
-	public String getShippingAddressState() {
-		return ShippingAddressState;
-	}
-
-
-	public void setShippingAddressState(String shippingAddressState) {
-		ShippingAddressState = shippingAddressState;
-	}
-
-
-	public String getShippingAddressCountry() {
-		return ShippingAddressCountry;
-	}
-
-
-	public void setShippingAddressCountry(String shippingAddressCountry) {
-		ShippingAddressCountry = shippingAddressCountry;
-	}
-
-
-	public String getShippingAddressZipcode() {
-		return ShippingAddressZipcode;
-	}
-
-
-	public void setShippingAddressZipcode(String shippingAddressZipcode) {
-		ShippingAddressZipcode = shippingAddressZipcode;
-	}
-
-
-	public Order getOrder() {
-		return order;
-	}
-
-
-	public void setOrder(Order order) {
-		this.order = order;
-	}
-
+    @JsonIgnore
+    @OneToOne(mappedBy = "shippingAddress", fetch = FetchType.LAZY)
+    private Order order;
 }

@@ -37,8 +37,14 @@ import com.bookstore.service.UserShippingService;
 import com.bookstore.utility.MailConstructor;
 import com.bookstore.utility.USConstants;
 
+import jakarta.mail.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Controller
 public class CheckoutController {
+
+	private static final Logger logger = LoggerFactory.getLogger(CheckoutController.class);
 
 	private ShippingAddress shippingAddress = new ShippingAddress();
 	private BillingAddress billingAddress = new BillingAddress();
@@ -81,9 +87,22 @@ public class CheckoutController {
 	public String checkout(@RequestParam("id") Long cartId,
 			@RequestParam(value = "missingRequiredField", required = false) boolean missingRequiredField, Model model,
 			Principal principal) {
+		
+		if (principal == null) {
+			logger.warn("Unauthorized checkout attempt - no principal");
+			return "redirect:/login";
+		}
+		
 		User user = userService.findByUsername(principal.getName());
+		
+		if (user == null) {
+			logger.warn("User not found for principal: {}", principal.getName());
+			return "redirect:/login";
+		}
 
-		if (cartId != user.getShoppingCart().getId()) {
+		// SECURITY FIX: Enhanced IDOR protection with proper validation
+		if (cartId == null || user.getShoppingCart() == null || !cartId.equals(user.getShoppingCart().getId())) {
+			logger.warn("IDOR attempt detected - User {} tried to access cart {}", user.getId(), cartId);
 			return "badRequestPage";
 		}
 
@@ -91,7 +110,7 @@ public class CheckoutController {
 
 		if (cartItemList.size() == 0) {
 			model.addAttribute("emptyCart", true);
-			return "forward:/shoppintCart/cart";
+			return "forward:/shoppingCart/cart";
 		}
 
 		for (CartItem cartItem : cartItemList) {
@@ -151,7 +170,6 @@ public class CheckoutController {
 		}
 
 		return "checkout";
-
 	}
 
 	@RequestMapping(value = "/checkout", method = RequestMethod.POST)
@@ -159,12 +177,26 @@ public class CheckoutController {
 			@ModelAttribute("billingAddress") BillingAddress billingAddress, @ModelAttribute("payment") Payment payment,
 			@ModelAttribute("billingSameAsShipping") String billingSameAsShipping,
 			@ModelAttribute("shippingMethod") String shippingMethod, Principal principal, Model model) {
-		ShoppingCart shoppingCart = userService.findByUsername(principal.getName()).getShoppingCart();
+		
+		if (principal == null) {
+			logger.warn("Unauthorized checkout POST attempt");
+			return "redirect:/login";
+		}
+		
+		User user = userService.findByUsername(principal.getName());
+		
+		if (user == null) {
+			logger.warn("User not found for principal: {}", principal.getName());
+			return "redirect:/login";
+		}
+		
+		ShoppingCart shoppingCart = user.getShoppingCart();
 
 		List<CartItem> cartItemList = cartItemService.findByShoppingCart(shoppingCart);
 		model.addAttribute("cartItemList", cartItemList);
 
-		if (billingSameAsShipping.equals("true")) {
+		// SECURITY FIX: Input validation for billingSameAsShipping
+		if (billingSameAsShipping != null && billingSameAsShipping.equals("true")) {
 			billingAddress.setBillingAddressName(shippingAddress.getShippingAddressName());
 			billingAddress.setBillingAddressStreet1(shippingAddress.getShippingAddressStreet1());
 			billingAddress.setBillingAddressStreet2(shippingAddress.getShippingAddressStreet2());
@@ -174,24 +206,39 @@ public class CheckoutController {
 			billingAddress.setBillingAddressZipcode(shippingAddress.getShippingAddressZipcode());
 		}
 
-		if (shippingAddress.getShippingAddressStreet1().isEmpty() 
-				|| shippingAddress.getShippingAddressCity().isEmpty()
-				|| shippingAddress.getShippingAddressState().isEmpty()
-				|| shippingAddress.getShippingAddressName().isEmpty()
-				|| shippingAddress.getShippingAddressZipcode().isEmpty() 
-				|| payment.getCardNumber().isEmpty()
-				|| payment.getCvc() == 0 || billingAddress.getBillingAddressStreet1().isEmpty()
-				|| billingAddress.getBillingAddressCity().isEmpty() 
-				|| billingAddress.getBillingAddressState().isEmpty()
-				|| billingAddress.getBillingAddressName().isEmpty()
-				|| billingAddress.getBillingAddressZipcode().isEmpty())
+		// SECURITY FIX: Enhanced input validation with null checks
+		if (shippingAddress == null || billingAddress == null || payment == null ||
+				shippingAddress.getShippingAddressStreet1() == null || shippingAddress.getShippingAddressStreet1().trim().isEmpty() 
+				|| shippingAddress.getShippingAddressCity() == null || shippingAddress.getShippingAddressCity().trim().isEmpty()
+				|| shippingAddress.getShippingAddressState() == null || shippingAddress.getShippingAddressState().trim().isEmpty()
+				|| shippingAddress.getShippingAddressName() == null || shippingAddress.getShippingAddressName().trim().isEmpty()
+				|| shippingAddress.getShippingAddressZipcode() == null || shippingAddress.getShippingAddressZipcode().trim().isEmpty() 
+				|| payment.getCardNumber() == null || payment.getCardNumber().trim().isEmpty()
+				|| payment.getCvc() == 0 
+				|| billingAddress.getBillingAddressStreet1() == null || billingAddress.getBillingAddressStreet1().trim().isEmpty()
+				|| billingAddress.getBillingAddressCity() == null || billingAddress.getBillingAddressCity().trim().isEmpty() 
+				|| billingAddress.getBillingAddressState() == null || billingAddress.getBillingAddressState().trim().isEmpty()
+				|| billingAddress.getBillingAddressName() == null || billingAddress.getBillingAddressName().trim().isEmpty()
+				|| billingAddress.getBillingAddressZipcode() == null || billingAddress.getBillingAddressZipcode().trim().isEmpty()) {
+			
+			logger.warn("Missing required fields in checkout for user: {}", user.getId());
 			return "redirect:/checkout?id=" + shoppingCart.getId() + "&missingRequiredField=true";
+		}
 		
-		User user = userService.findByUsername(principal.getName());
+		// SECURITY FIX: Validate shipping method
+		if (shippingMethod == null || (!shippingMethod.equals("groundShipping") && !shippingMethod.equals("premiumShipping"))) {
+			logger.warn("Invalid shipping method: {} for user: {}", shippingMethod, user.getId());
+			return "redirect:/checkout?id=" + shoppingCart.getId() + "&missingRequiredField=true";
+		}
 		
 		Order order = orderService.createOrder(shoppingCart, shippingAddress, billingAddress, payment, shippingMethod, user);
 		
-		mailSender.send(mailConstructor.constructOrderConfirmationEmail(user, order, Locale.ENGLISH));
+		try {
+			mailSender.send(mailConstructor.constructOrderConfirmationEmail(user, order, Locale.ENGLISH));
+		} catch (Exception e) {
+			logger.error("Failed to send order confirmation email for order: {}", order.getId(), e);
+			// Continue processing even if email fails
+		}
 		
 		shoppingCartService.clearShoppingCart(shoppingCart);
 		
@@ -206,16 +253,37 @@ public class CheckoutController {
 		
 		model.addAttribute("estimatedDeliveryDate", estimatedDeliveryDate);
 		
+		logger.info("Order {} successfully created for user: {}", order.getId(), user.getId());
+		
 		return "orderSubmittedPage";
 	}
 
 	@RequestMapping("/setShippingAddress")
 	public String setShippingAddress(@RequestParam("userShippingId") Long userShippingId, Principal principal,
 			Model model) {
+		
+		if (principal == null) {
+			logger.warn("Unauthorized setShippingAddress attempt");
+			return "redirect:/login";
+		}
+		
 		User user = userService.findByUsername(principal.getName());
+		
+		if (user == null) {
+			logger.warn("User not found for principal: {}", principal.getName());
+			return "redirect:/login";
+		}
+		
+		if (userShippingId == null) {
+			logger.warn("Null userShippingId provided by user: {}", user.getId());
+			return "badRequestPage";
+		}
+		
 		UserShipping userShipping = userShippingService.findById(userShippingId);
 
-		if (userShipping.getUser().getId() != user.getId()) {
+		// SECURITY FIX: Enhanced IDOR protection with proper validation
+		if (userShipping == null || userShipping.getUser() == null || !userShipping.getUser().getId().equals(user.getId())) {
+			logger.warn("IDOR attempt detected - User {} tried to access shipping address {}", user.getId(), userShippingId);
 			return "badRequestPage";
 		} else {
 			shippingAddressService.setByUserShipping(userShipping, shippingAddress);
@@ -257,11 +325,36 @@ public class CheckoutController {
 	@RequestMapping("/setPaymentMethod")
 	public String setPaymentMethod(@RequestParam("userPaymentId") Long userPaymentId, Principal principal,
 			Model model) {
+		
+		if (principal == null) {
+			logger.warn("Unauthorized setPaymentMethod attempt");
+			return "redirect:/login";
+		}
+		
 		User user = userService.findByUsername(principal.getName());
+		
+		if (user == null) {
+			logger.warn("User not found for principal: {}", principal.getName());
+			return "redirect:/login";
+		}
+		
+		if (userPaymentId == null) {
+			logger.warn("Null userPaymentId provided by user: {}", user.getId());
+			return "badRequestPage";
+		}
+		
 		UserPayment userPayment = userPaymentService.findById(userPaymentId);
+		
+		if (userPayment == null) {
+			logger.warn("UserPayment not found: {}", userPaymentId);
+			return "badRequestPage";
+		}
+		
 		UserBilling userBilling = userPayment.getUserBilling();
 
-		if (userPayment.getUser().getId() != user.getId()) {
+		// SECURITY FIX: Enhanced IDOR protection with proper validation
+		if (userPayment.getUser() == null || !userPayment.getUser().getId().equals(user.getId())) {
+			logger.warn("IDOR attempt detected - User {} tried to access payment method {}", user.getId(), userPaymentId);
 			return "badRequestPage";
 		} else {
 			paymentService.setByUserPayment(userPayment, payment);
@@ -301,5 +394,4 @@ public class CheckoutController {
 			return "checkout";
 		}
 	}
-
 }

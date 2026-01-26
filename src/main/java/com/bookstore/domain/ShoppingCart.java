@@ -1,65 +1,67 @@
 package com.bookstore.domain;
 
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.io.Serializable;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 @Entity
-public class ShoppingCart {
-	
-	@Id
-	@GeneratedValue(strategy = GenerationType.AUTO)
-	private Long id;
-	private BigDecimal GrandTotal;
-	
-	@OneToMany(mappedBy="shoppingCart", cascade=CascadeType.ALL, fetch=FetchType.LAZY)
-	@JsonIgnore
-	private List<CartItem> cartItemList;
-	
-	@OneToOne(cascade = CascadeType.ALL)
-	private User user;
+@Table(name = "shopping_cart")
+@Data
+@EqualsAndHashCode(exclude = {"cartItemList"})
+public class ShoppingCart implements Serializable {
 
-	public Long getId() {
-		return id;
-	}
+    private static final long serialVersionUID = 1L;
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", nullable = false, updatable = false)
+    private Long id;
 
-	public BigDecimal getGrandTotal() {
-		return GrandTotal;
-	}
+    @NotNull(message = "Grand total is required")
+    @DecimalMin(value = "0.00", message = "Grand total must be at least 0.00")
+    @DecimalMax(value = "999999.99", message = "Grand total must not exceed 999999.99")
+    @Digits(integer = 8, fraction = 2, message = "Grand total must have at most 8 integer digits and 2 decimal places")
+    @Column(name = "grand_total", nullable = false, precision = 10, scale = 2)
+    private BigDecimal grandTotal = BigDecimal.ZERO;
 
-	public void setGrandTotal(BigDecimal grandTotal) {
-		GrandTotal = grandTotal;
-	}
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
-	public List<CartItem> getCartItemList() {
-		return cartItemList;
-	}
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
 
-	public void setCartItemList(List<CartItem> cartItemList) {
-		this.cartItemList = cartItemList;
-	}
+    @JsonIgnore
+    @OneToMany(mappedBy = "shoppingCart", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    private List<CartItem> cartItemList = new ArrayList<>();
 
-	public User getUser() {
-		return user;
-	}
+    @JsonIgnore
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", unique = true, nullable = false)
+    private User user;
 
-	public void setUser(User user) {
-		this.user = user;
-	}
-	
-	
+    @Transient
+    public int getTotalItems() {
+        return cartItemList != null ? cartItemList.stream()
+            .mapToInt(CartItem::getQty)
+            .sum() : 0;
+    }
+
+    @Transient
+    public void updateGrandTotal() {
+        this.grandTotal = cartItemList != null ? cartItemList.stream()
+            .map(CartItem::getSubtotal)
+            .reduce(BigDecimal.ZERO, BigDecimal::add) : BigDecimal.ZERO;
+    }
 }

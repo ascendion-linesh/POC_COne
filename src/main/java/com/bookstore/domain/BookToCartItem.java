@@ -1,50 +1,43 @@
 package com.bookstore.domain;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
+import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.io.Serializable;
+import java.time.LocalDateTime;
 
 @Entity
-public class BookToCartItem {
+@Table(name = "book_to_cart_item")
+@Data
+@EqualsAndHashCode(exclude = {"book", "cartItem"})
+public class BookToCartItem implements Serializable {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.AUTO)
-	private Long id;
-	
-	@ManyToOne
-	@JoinColumn(name="book_id")
-	private Book book;
-	
-	@ManyToOne
-	@JoinColumn(name="cart_item_id")
-	private CartItem cartItem;
+    private static final long serialVersionUID = 1L;
 
-	public Long getId() {
-		return id;
-	}
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", nullable = false, updatable = false)
+    private Long id;
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
-	public Book getBook() {
-		return book;
-	}
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
 
-	public void setBook(Book book) {
-		this.book = book;
-	}
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "book_id", nullable = false)
+    private Book book;
 
-	public CartItem getCartItem() {
-		return cartItem;
-	}
-
-	public void setCartItem(CartItem cartItem) {
-		this.cartItem = cartItem;
-	}
-	
-	
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cart_item_id", nullable = false)
+    private CartItem cartItem;
 }
