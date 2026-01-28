@@ -6,7 +6,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -60,8 +59,7 @@ public class SecurityConfig {
 			.cors(cors -> cors.disable())
 			.formLogin(form -> form
 				.failureUrl("/login?error")
-				.loginPage("/login")
-				.permitAll()
+				.loginPage("/login").permitAll()
 			)
 			.logout(logout -> logout
 				.logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
@@ -69,20 +67,18 @@ public class SecurityConfig {
 				.deleteCookies("remember-me")
 				.permitAll()
 			)
-			.rememberMe(remember -> remember
-				.key("uniqueAndSecret")
-			);
+			.rememberMe(rememberMe -> rememberMe.key("uniqueAndSecret"));
 
 		return http.build();
 	}
 
 	@Bean
-	public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
-		return authConfig.getAuthenticationManager();
-	}
-
-	@Autowired
-	public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
-		auth.userDetailsService(userSecurityService).passwordEncoder(passwordEncoder());
+	public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
+		AuthenticationManagerBuilder authenticationManagerBuilder = 
+			http.getSharedObject(AuthenticationManagerBuilder.class);
+		authenticationManagerBuilder
+			.userDetailsService(userSecurityService)
+			.passwordEncoder(passwordEncoder());
+		return authenticationManagerBuilder.build();
 	}
 }
