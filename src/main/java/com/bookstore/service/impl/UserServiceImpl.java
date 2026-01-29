@@ -2,6 +2,7 @@ package com.bookstore.service.impl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -62,7 +63,8 @@ public class UserServiceImpl implements UserService{
 	
 	@Override
 	public User findById(Long id){
-		return userRepository.findOne(id);
+		Optional<User> userOptional = userRepository.findById(id);
+		return userOptional.orElse(null);
 	}
 	
 	@Override
@@ -149,5 +151,4 @@ public class UserServiceImpl implements UserService{
 			}
 		}
 	}
-
 }
