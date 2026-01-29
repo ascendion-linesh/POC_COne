@@ -58,8 +58,9 @@ public class SecurityConfig {
 			.csrf(csrf -> csrf.disable())
 			.cors(cors -> cors.disable())
 			.formLogin(form -> form
+				.loginPage("/login")
 				.failureUrl("/login?error")
-				.loginPage("/login").permitAll()
+				.permitAll()
 			)
 			.logout(logout -> logout
 				.logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
@@ -67,8 +68,10 @@ public class SecurityConfig {
 				.deleteCookies("remember-me")
 				.permitAll()
 			)
-			.rememberMe(rememberMe -> rememberMe.key("uniqueAndSecret"));
-
+			.rememberMe(remember -> remember
+				.key("uniqueAndSecret")
+			);
+		
 		return http.build();
 	}
 
