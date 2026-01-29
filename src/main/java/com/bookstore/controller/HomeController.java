@@ -169,7 +169,6 @@ public class HomeController {
 		
 		model.addAttribute("forgetPasswordEmailSent", "true");
 		
-		
 		return "myAccount";
 	}
 	
@@ -242,7 +241,6 @@ public class HomeController {
 		
 		UserBilling userBilling = new UserBilling();
 		UserPayment userPayment = new UserPayment();
-		
 		
 		model.addAttribute("userBilling", userBilling);
 		model.addAttribute("userPayment", userPayment);
@@ -320,7 +318,6 @@ public class HomeController {
 		
 		return "myProfile";
 	}
-	
 	
 	@RequestMapping("/updateCreditCard")
 	public String updateCreditCard(
@@ -524,7 +521,6 @@ public class HomeController {
 		
 		return "myAccount";
 	}
-	
 
 	@RequestMapping("/newUser")
 	public String newUser(Locale locale, @RequestParam("token") String token, Model model) {
