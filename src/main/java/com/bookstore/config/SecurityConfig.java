@@ -18,7 +18,7 @@ import com.bookstore.utility.SecurityUtility;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled=true)
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 	
 	@Autowired
