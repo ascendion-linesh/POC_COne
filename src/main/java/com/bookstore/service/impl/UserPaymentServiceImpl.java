@@ -10,14 +10,15 @@ import com.bookstore.service.UserPaymentService;
 @Service
 public class UserPaymentServiceImpl implements UserPaymentService{
 
-	@Autowired
-	private UserPaymentRepository userPaymentRepository;
-		
-	public UserPayment findById(Long id) {
-		return userPaymentRepository.findOne(id);
-	}
-	
-	public void removeById(Long id) {
-		userPaymentRepository.delete(id);
-	}
-} 
+    @Autowired
+    private UserPaymentRepository userPaymentRepository;
+        
+    public UserPayment findById(Long id) {
+        return userPaymentRepository.findById(id).orElseThrow(() -> 
+            new RuntimeException("UserPayment not found with id: " + id));
+    }
+    
+    public void removeById(Long id) {
+        userPaymentRepository.deleteById(id);
+    }
+}
