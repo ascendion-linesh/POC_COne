@@ -4,129 +4,97 @@ import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
+
+/**
+ * Order Entity
+ * 
+ * REMEDIATIONS:
+ * 1. ✅ Changed javax.persistence.* to jakarta.persistence.*
+ * 2. ✅ Changed javax.validation.* to jakarta.validation.*
+ * 3. ✅ Added validation annotations
+ * 
+ * @author Bookstore Team
+ * @version 2.0 (Remediated)
+ */
 @Entity
-@Table(name="user_order")
+@Table(name = "user_order")
 public class Order {
-	
-	@Id
-	@GeneratedValue(strategy = GenerationType.AUTO)
-	private Long id;
-	private Date orderDate;
-	private Date shippingDate;
-	private String shippingMethod;
-	private String orderStatus;
-	private BigDecimal orderTotal;
-	
-	@OneToMany(mappedBy = "order", cascade=CascadeType.ALL )
-	private List<CartItem> cartItemList;
-	
-	@OneToOne(cascade=CascadeType.ALL)
-	private ShippingAddress shippingAddress;
-	
-	@OneToOne(cascade=CascadeType.ALL)
-	private BillingAddress billingAddress;
-	
-	@OneToOne(cascade=CascadeType.ALL)
-	private Payment payment;
-	
-	@ManyToOne
-	private User user;
 
-	public Long getId() {
-		return id;
-	}
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    @NotNull(message = "Order date is required")
+    private Date orderDate;
 
-	public Date getOrderDate() {
-		return orderDate;
-	}
+    @NotNull(message = "Shipping date is required")
+    private Date shippingDate;
 
-	public void setOrderDate(Date orderDate) {
-		this.orderDate = orderDate;
-	}
+    @NotNull(message = "Shipping method is required")
+    private String shippingMethod;
 
-	public Date getShippingDate() {
-		return shippingDate;
-	}
+    @NotNull(message = "Order status is required")
+    private String orderStatus;
 
-	public void setShippingDate(Date shippingDate) {
-		this.shippingDate = shippingDate;
-	}
+    @NotNull(message = "Order total is required")
+    @DecimalMin(value = "0.0", message = "Order total must be positive")
+    private BigDecimal orderTotal;
 
-	public String getShippingMethod() {
-		return shippingMethod;
-	}
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
+    private List<CartItem> cartItemList;
 
-	public void setShippingMethod(String shippingMethod) {
-		this.shippingMethod = shippingMethod;
-	}
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    @JsonIgnore
+    private User user;
 
-	public String getOrderStatus() {
-		return orderStatus;
-	}
+    @OneToOne(cascade = CascadeType.ALL)
+    private ShippingAddress shippingAddress;
 
-	public void setOrderStatus(String orderStatus) {
-		this.orderStatus = orderStatus;
-	}
+    @OneToOne(cascade = CascadeType.ALL)
+    private BillingAddress billingAddress;
 
-	public BigDecimal getOrderTotal() {
-		return orderTotal;
-	}
+    @OneToOne(cascade = CascadeType.ALL)
+    private Payment payment;
 
-	public void setOrderTotal(BigDecimal orderTotal) {
-		this.orderTotal = orderTotal;
-	}
+    // Constructors
+    public Order() {}
 
-	public List<CartItem> getCartItemList() {
-		return cartItemList;
-	}
+    // Getters and Setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-	public void setCartItemList(List<CartItem> cartItemList) {
-		this.cartItemList = cartItemList;
-	}
+    public Date getOrderDate() { return orderDate; }
+    public void setOrderDate(Date orderDate) { this.orderDate = orderDate; }
 
-	public ShippingAddress getShippingAddress() {
-		return shippingAddress;
-	}
+    public Date getShippingDate() { return shippingDate; }
+    public void setShippingDate(Date shippingDate) { this.shippingDate = shippingDate; }
 
-	public void setShippingAddress(ShippingAddress shippingAddress) {
-		this.shippingAddress = shippingAddress;
-	}
+    public String getShippingMethod() { return shippingMethod; }
+    public void setShippingMethod(String shippingMethod) { this.shippingMethod = shippingMethod; }
 
-	public Payment getPayment() {
-		return payment;
-	}
+    public String getOrderStatus() { return orderStatus; }
+    public void setOrderStatus(String orderStatus) { this.orderStatus = orderStatus; }
 
-	public void setPayment(Payment payment) {
-		this.payment = payment;
-	}
+    public BigDecimal getOrderTotal() { return orderTotal; }
+    public void setOrderTotal(BigDecimal orderTotal) { this.orderTotal = orderTotal; }
 
-	public BillingAddress getBillingAddress() {
-		return billingAddress;
-	}
+    public List<CartItem> getCartItemList() { return cartItemList; }
+    public void setCartItemList(List<CartItem> cartItemList) { this.cartItemList = cartItemList; }
 
-	public void setBillingAddress(BillingAddress billingAddress) {
-		this.billingAddress = billingAddress;
-	}
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
 
-	public User getUser() {
-		return user;
-	}
+    public ShippingAddress getShippingAddress() { return shippingAddress; }
+    public void setShippingAddress(ShippingAddress shippingAddress) { this.shippingAddress = shippingAddress; }
 
-	public void setUser(User user) {
-		this.user = user;
-	}
+    public BillingAddress getBillingAddress() { return billingAddress; }
+    public void setBillingAddress(BillingAddress billingAddress) { this.billingAddress = billingAddress; }
+
+    public Payment getPayment() { return payment; }
+    public void setPayment(Payment payment) { this.payment = payment; }
 }
