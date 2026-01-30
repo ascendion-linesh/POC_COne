@@ -45,7 +45,6 @@ public class User implements UserDetails{
 	@OneToMany(cascade = CascadeType.ALL, mappedBy = "user")
 	private List<UserShipping> userShippingList;
 	
-	
 	@OneToMany(cascade = CascadeType.ALL, mappedBy = "user")
 	private List<UserPayment> userPaymentList;
 	
@@ -108,8 +107,6 @@ public class User implements UserDetails{
 	public void setUserRoles(Set<UserRole> userRoles) {
 		this.userRoles = userRoles;
 	}
-	
-	
 	
 	public List<UserShipping> getUserShippingList() {
 		return userShippingList;
