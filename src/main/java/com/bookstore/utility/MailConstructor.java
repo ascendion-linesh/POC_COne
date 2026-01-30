@@ -2,8 +2,8 @@ package com.bookstore.utility;
 
 import java.util.Locale;
 
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
@@ -37,7 +37,6 @@ public class MailConstructor {
 		email.setText(url+message);
 		email.setFrom(env.getProperty("support.email"));
 		return email;
-		
 	}
 	
 	public MimeMessagePreparator constructOrderConfirmationEmail (User user, Order order, Locale locale) {
