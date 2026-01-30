@@ -1,24 +1,20 @@
 package com.bookstore.controller;
 
+import com.bookstore.domain.*;
+import com.bookstore.service.*;
+import com.bookstore.utility.MailConstructor;
+import com.bookstore.utility.USConstants;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+
 import java.security.Principal;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-
-import com.bookstore.domain.*;
-import com.bookstore.service.*;
-import com.bookstore.utility.MailConstructor;
-import com.bookstore.utility.USConstants;
 
 @Controller
 public class CheckoutController {
@@ -28,17 +24,11 @@ public class CheckoutController {
     private Payment payment = new Payment();
 
     @Autowired
-    private JavaMailSender mailSender;
-    
-    @Autowired
-    private MailConstructor mailConstructor;
-    
-    @Autowired
     private UserService userService;
 
     @Autowired
     private CartItemService cartItemService;
-    
+
     @Autowired
     private ShoppingCartService shoppingCartService;
 
@@ -56,14 +46,20 @@ public class CheckoutController {
 
     @Autowired
     private UserPaymentService userPaymentService;
-    
+
     @Autowired
     private OrderService orderService;
 
+    @Autowired
+    private MailConstructor mailConstructor;
+
+    @Autowired
+    private JavaMailSender mailSender;
+
     @GetMapping("/checkout")
     public String checkout(@RequestParam("id") Long cartId,
-            @RequestParam(value = "missingRequiredField", required = false) boolean missingRequiredField, Model model,
-            Principal principal) {
+                          @RequestParam(value = "missingRequiredField", required = false) boolean missingRequiredField,
+                          Model model, Principal principal) {
         User user = userService.findByUsername(principal.getName());
 
         if (cartId != user.getShoppingCart().getId()) {
@@ -134,14 +130,15 @@ public class CheckoutController {
         }
 
         return "checkout";
-
     }
 
     @PostMapping("/checkout")
     public String checkoutPost(@ModelAttribute("shippingAddress") ShippingAddress shippingAddress,
-            @ModelAttribute("billingAddress") BillingAddress billingAddress, @ModelAttribute("payment") Payment payment,
-            @ModelAttribute("billingSameAsShipping") String billingSameAsShipping,
-            @ModelAttribute("shippingMethod") String shippingMethod, Principal principal, Model model) {
+                              @ModelAttribute("billingAddress") BillingAddress billingAddress,
+                              @ModelAttribute("payment") Payment payment,
+                              @ModelAttribute("billingSameAsShipping") String billingSameAsShipping,
+                              @ModelAttribute("shippingMethod") String shippingMethod,
+                              Principal principal, Model model) {
         ShoppingCart shoppingCart = userService.findByUsername(principal.getName()).getShoppingCart();
 
         List<CartItem> cartItemList = cartItemService.findByShoppingCart(shoppingCart);
@@ -157,48 +154,50 @@ public class CheckoutController {
             billingAddress.setBillingAddressZipcode(shippingAddress.getShippingAddressZipcode());
         }
 
-        if (shippingAddress.getShippingAddressStreet1().isEmpty() 
-                || shippingAddress.getShippingAddressCity().isEmpty()
-                || shippingAddress.getShippingAddressState().isEmpty()
-                || shippingAddress.getShippingAddressName().isEmpty()
-                || shippingAddress.getShippingAddressZipcode().isEmpty() 
-                || payment.getCardNumber().isEmpty()
-                || payment.getCvc() == 0 || billingAddress.getBillingAddressStreet1().isEmpty()
-                || billingAddress.getBillingAddressCity().isEmpty() 
-                || billingAddress.getBillingAddressState().isEmpty()
-                || billingAddress.getBillingAddressName().isEmpty()
-                || billingAddress.getBillingAddressZipcode().isEmpty())
+        if (shippingAddress.getShippingAddressStreet1().isEmpty() ||
+            shippingAddress.getShippingAddressCity().isEmpty() ||
+            shippingAddress.getShippingAddressState().isEmpty() ||
+            shippingAddress.getShippingAddressName().isEmpty() ||
+            shippingAddress.getShippingAddressZipcode().isEmpty() ||
+            payment.getCardNumber().isEmpty() ||
+            payment.getCvc() == 0 ||
+            billingAddress.getBillingAddressStreet1().isEmpty() ||
+            billingAddress.getBillingAddressCity().isEmpty() ||
+            billingAddress.getBillingAddressState().isEmpty() ||
+            billingAddress.getBillingAddressName().isEmpty() ||
+            billingAddress.getBillingAddressZipcode().isEmpty()) {
             return "redirect:/checkout?id=" + shoppingCart.getId() + "&missingRequiredField=true";
-        
+        }
+
         User user = userService.findByUsername(principal.getName());
-        
+
         Order order = orderService.createOrder(shoppingCart, shippingAddress, billingAddress, payment, shippingMethod, user);
-        
+
         mailSender.send(mailConstructor.constructOrderConfirmationEmail(user, order, Locale.ENGLISH));
-        
+
         shoppingCartService.clearShoppingCart(shoppingCart);
-        
+
         LocalDate today = LocalDate.now();
         LocalDate estimatedDeliveryDate;
-        
+
         if (shippingMethod.equals("groundShipping")) {
             estimatedDeliveryDate = today.plusDays(5);
         } else {
             estimatedDeliveryDate = today.plusDays(3);
         }
-        
+
         model.addAttribute("estimatedDeliveryDate", estimatedDeliveryDate);
-        
+
         return "orderSubmittedPage";
     }
 
     @PostMapping("/setShippingAddress")
-    public String setShippingAddress(@RequestParam("userShippingId") Long userShippingId, Principal principal,
-            Model model) {
+    public String setShippingAddress(@RequestParam("userShippingId") Long userShippingId,
+                                    Principal principal, Model model) {
         User user = userService.findByUsername(principal.getName());
-        UserShipping userShipping = userShippingService.findById(userShippingId).orElse(null);
+        UserShipping userShipping = userShippingService.findById(userShippingId);
 
-        if (userShipping == null || userShipping.getUser().getId() != user.getId()) {
+        if (userShipping.getUser().getId() != user.getId()) {
             return "badRequestPage";
         } else {
             shippingAddressService.setByUserShipping(userShipping, shippingAddress);
@@ -213,6 +212,7 @@ public class CheckoutController {
 
             List<String> stateList = USConstants.listOfUSStatesCode;
             Collections.sort(stateList);
+
             model.addAttribute("stateList", stateList);
 
             List<UserShipping> userShippingList = user.getUserShippingList();
@@ -238,15 +238,10 @@ public class CheckoutController {
     }
 
     @PostMapping("/setPaymentMethod")
-    public String setPaymentMethod(@RequestParam("userPaymentId") Long userPaymentId, Principal principal,
-            Model model) {
+    public String setPaymentMethod(@RequestParam("userPaymentId") Long userPaymentId,
+                                  Principal principal, Model model) {
         User user = userService.findByUsername(principal.getName());
-        UserPayment userPayment = userPaymentService.findById(userPaymentId).orElse(null);
-        
-        if(userPayment == null) {
-            return "badRequestPage";
-        }
-        
+        UserPayment userPayment = userPaymentService.findById(userPaymentId);
         UserBilling userBilling = userPayment.getUserBilling();
 
         if (userPayment.getUser().getId() != user.getId()) {
@@ -266,6 +261,7 @@ public class CheckoutController {
 
             List<String> stateList = USConstants.listOfUSStatesCode;
             Collections.sort(stateList);
+
             model.addAttribute("stateList", stateList);
 
             List<UserShipping> userShippingList = user.getUserShippingList();
@@ -273,8 +269,6 @@ public class CheckoutController {
 
             model.addAttribute("userShippingList", userShippingList);
             model.addAttribute("userPaymentList", userPaymentList);
-
-            model.addAttribute("shippingAddress", shippingAddress);
 
             model.addAttribute("classActivePayment", true);
 
@@ -289,5 +283,4 @@ public class CheckoutController {
             return "checkout";
         }
     }
-
 }
