@@ -3,94 +3,72 @@ package com.bookstore.domain;
 import java.math.BigDecimal;
 import java.util.List;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
+
+/**
+ * Cart Item Entity
+ * 
+ * REMEDIATIONS:
+ * 1. ✅ Changed javax.persistence.* to jakarta.persistence.*
+ * 2. ✅ Changed javax.validation.* to jakarta.validation.*
+ * 3. ✅ Added validation annotations
+ * 
+ * @author Bookstore Team
+ * @version 2.0 (Remediated)
+ */
 @Entity
 public class CartItem {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.AUTO)
-	private Long id;
-	private int qty;
-	private BigDecimal subtotal;
-	
-	@OneToOne
-	private Book book;
-	
-	@OneToMany(mappedBy = "cartItem")
-	@JsonIgnore
-	private List<BookToCartItem> bookToCartItemList;
-	
-	@ManyToOne
-	@JoinColumn(name="shopping_cart_id")
-	private ShoppingCart shoppingCart;
-	
-	@ManyToOne
-	@JoinColumn(name="order_id")
-	private Order order;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-	public Long getId() {
-		return id;
-	}
+    @NotNull(message = "Quantity is required")
+    @Min(value = 1, message = "Quantity must be at least 1")
+    private int qty;
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    private BigDecimal subtotal;
 
-	public int getQty() {
-		return qty;
-	}
+    @OneToOne
+    private Book book;
 
-	public void setQty(int qty) {
-		this.qty = qty;
-	}
+    @OneToMany(mappedBy = "cartItem")
+    @JsonIgnore
+    private List<BookToCartItem> bookToCartItemList;
 
-	public BigDecimal getSubtotal() {
-		return subtotal;
-	}
+    @ManyToOne
+    @JoinColumn(name = "shopping_cart_id")
+    private ShoppingCart shoppingCart;
 
-	public void setSubtotal(BigDecimal subtotal) {
-		this.subtotal = subtotal;
-	}
+    @ManyToOne
+    @JoinColumn(name = "order_id")
+    private Order order;
 
-	public Book getBook() {
-		return book;
-	}
+    // Constructors
+    public CartItem() {}
 
-	public void setBook(Book book) {
-		this.book = book;
-	}
+    // Getters and Setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-	public List<BookToCartItem> getBookToCartItemList() {
-		return bookToCartItemList;
-	}
+    public int getQty() { return qty; }
+    public void setQty(int qty) { this.qty = qty; }
 
-	public void setBookToCartItemList(List<BookToCartItem> bookToCartItemList) {
-		this.bookToCartItemList = bookToCartItemList;
-	}
+    public BigDecimal getSubtotal() { return subtotal; }
+    public void setSubtotal(BigDecimal subtotal) { this.subtotal = subtotal; }
 
-	public ShoppingCart getShoppingCart() {
-		return shoppingCart;
-	}
+    public Book getBook() { return book; }
+    public void setBook(Book book) { this.book = book; }
 
-	public void setShoppingCart(ShoppingCart shoppingCart) {
-		this.shoppingCart = shoppingCart;
-	}
+    public List<BookToCartItem> getBookToCartItemList() { return bookToCartItemList; }
+    public void setBookToCartItemList(List<BookToCartItem> bookToCartItemList) { this.bookToCartItemList = bookToCartItemList; }
 
-	public Order getOrder() {
-		return order;
-	}
+    public ShoppingCart getShoppingCart() { return shoppingCart; }
+    public void setShoppingCart(ShoppingCart shoppingCart) { this.shoppingCart = shoppingCart; }
 
-	public void setOrder(Order order) {
-		this.order = order;
-	}
+    public Order getOrder() { return order; }
+    public void setOrder(Order order) { this.order = order; }
 }
