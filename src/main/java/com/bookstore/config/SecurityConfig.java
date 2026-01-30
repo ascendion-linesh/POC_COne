@@ -1,5 +1,6 @@
 package com.bookstore.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -10,31 +11,44 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
-import com.bookstore.service.impl.UserSecurityService;
-
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = true, securedEnabled = true)
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
-    private final UserSecurityService userSecurityService;
+    @Autowired
+    private UserDetailsService userDetailsService;
 
-    public SecurityConfig(UserSecurityService userSecurityService) {
-        this.userSecurityService = userSecurityService;
-    }
+    private static final String[] PUBLIC_MATCHERS = {
+            "/css/**",
+            "/js/**",
+            "/image/**",
+            "/",
+            "/login",
+            "/fonts/**",
+            "/bookshelf",
+            "/bookDetail/**",
+            "/hours",
+            "/faq",
+            "/newUser",
+            "/forgetPassword",
+            "/searchByCategory",
+            "/searchBook"
+    };
 
     @Bean
-    public BCryptPasswordEncoder passwordEncoder() {
+    public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(12);
     }
 
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userSecurityService);
+        authProvider.setUserDetailsService(userDetailsService);
         authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
     }
@@ -47,29 +61,13 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .authenticationProvider(authenticationProvider())
             .authorizeHttpRequests(authz -> authz
-                .requestMatchers(
-                    "/css/**", 
-                    "/js/**", 
-                    "/image/**", 
-                    "/fonts/**",
-                    "/",
-                    "/newUser",
-                    "/forgetPassword",
-                    "/login",
-                    "/bookshelf",
-                    "/bookDetail/**",
-                    "/hours",
-                    "/faq",
-                    "/searchByCategory",
-                    "/searchBook"
-                ).permitAll()
+                .requestMatchers(PUBLIC_MATCHERS).permitAll()
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form
                 .loginPage("/login")
-                .defaultSuccessUrl("/", true)
+                .defaultSuccessUrl("/")
                 .failureUrl("/login?error")
                 .permitAll()
             )
@@ -82,15 +80,9 @@ public class SecurityConfig {
                 .permitAll()
             )
             .rememberMe(remember -> remember
-                .key("uniqueAndSecret")
+                .key("uniqueAndSecretRememberMeKey")
                 .tokenValiditySeconds(86400)
-                .userDetailsService(userSecurityService)
-            )
-            .sessionManagement(session -> session
-                .maximumSessions(1)
-                .maxSessionsPreventsLogin(false)
             );
-        
         return http.build();
     }
 }
