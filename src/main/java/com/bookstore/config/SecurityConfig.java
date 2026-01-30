@@ -1,23 +1,23 @@
 package com.bookstore.config;
 
+import com.bookstore.service.impl.UserSecurityService;
+import com.bookstore.utility.SecurityUtility;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
-import com.bookstore.service.impl.UserSecurityService;
-
 @Configuration
 @EnableWebSecurity
-@EnableGlobalMethodSecurity(prePostEnabled = true)
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     @Autowired
@@ -28,7 +28,6 @@ public class SecurityConfig {
             "/js/**",
             "/image/**",
             "/",
-            "/myAccount",
             "/newUser",
             "/forgetPassword",
             "/login",
@@ -43,7 +42,7 @@ public class SecurityConfig {
 
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(12);
+        return SecurityUtility.passwordEncoder();
     }
 
     @Bean
@@ -63,24 +62,28 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .authenticationProvider(authenticationProvider())
-            .authorizeRequests()
-                .antMatchers(PUBLIC_MATCHERS).permitAll()
+            .authorizeHttpRequests(authz -> authz
+                .requestMatchers(PUBLIC_MATCHERS).permitAll()
                 .anyRequest().authenticated()
-            .and()
-            .csrf().disable()
-            .formLogin()
+            )
+            .csrf(csrf -> csrf.disable())
+            .cors(cors -> cors.disable())
+            .formLogin(form -> form
                 .loginPage("/login")
                 .defaultSuccessUrl("/")
                 .failureUrl("/login?error")
                 .permitAll()
-            .and()
-            .logout()
+            )
+            .logout(logout -> logout
                 .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
                 .logoutSuccessUrl("/?logout")
-                .deleteCookies("JSESSIONID")
-                .invalidateHttpSession(true)
-                .clearAuthentication(true)
-                .permitAll();
+                .deleteCookies("remember-me")
+                .permitAll()
+            )
+            .rememberMe(remember -> remember
+                .key("uniqueAndSecret")
+                .tokenValiditySeconds(86400)
+            );
 
         return http.build();
     }
