@@ -1,76 +1,96 @@
 package com.bookstore.domain;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-
-import java.io.Serializable;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
-@Table(name = "cart_item")
-@Data
-@EqualsAndHashCode(exclude = {"bookToCartItemList", "shoppingCart", "order"})
-public class CartItem implements Serializable {
+public class CartItem {
 
-    private static final long serialVersionUID = 1L;
+	@Id
+	@GeneratedValue(strategy = GenerationType.AUTO)
+	private Long id;
+	private int qty;
+	private BigDecimal subtotal;
+	
+	@OneToOne
+	private Book book;
+	
+	@OneToMany(mappedBy = "cartItem")
+	@JsonIgnore
+	private List<BookToCartItem> bookToCartItemList;
+	
+	@ManyToOne
+	@JoinColumn(name="shopping_cart_id")
+	private ShoppingCart shoppingCart;
+	
+	@ManyToOne
+	@JoinColumn(name="order_id")
+	private Order order;
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id", nullable = false, updatable = false)
-    private Long id;
+	public Long getId() {
+		return id;
+	}
 
-    @NotNull(message = "Quantity is required")
-    @Min(value = 1, message = "Quantity must be at least 1")
-    @Max(value = 1000, message = "Quantity must not exceed 1000")
-    @Column(name = "qty", nullable = false)
-    private Integer qty;
+	public void setId(Long id) {
+		this.id = id;
+	}
 
-    @NotNull(message = "Subtotal is required")
-    @DecimalMin(value = "0.00", message = "Subtotal must be at least 0.00")
-    @DecimalMax(value = "999999.99", message = "Subtotal must not exceed 999999.99")
-    @Digits(integer = 8, fraction = 2, message = "Subtotal must have at most 8 integer digits and 2 decimal places")
-    @Column(name = "subtotal", nullable = false, precision = 10, scale = 2)
-    private BigDecimal subtotal;
+	public int getQty() {
+		return qty;
+	}
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+	public void setQty(int qty) {
+		this.qty = qty;
+	}
 
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+	public BigDecimal getSubtotal() {
+		return subtotal;
+	}
 
-    @OneToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "book_id", nullable = false)
-    private Book book;
+	public void setSubtotal(BigDecimal subtotal) {
+		this.subtotal = subtotal;
+	}
 
-    @JsonIgnore
-    @OneToMany(mappedBy = "cartItem", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
-    private List<BookToCartItem> bookToCartItemList;
+	public Book getBook() {
+		return book;
+	}
 
-    @JsonIgnore
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "shopping_cart_id")
-    private ShoppingCart shoppingCart;
+	public void setBook(Book book) {
+		this.book = book;
+	}
 
-    @JsonIgnore
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id")
-    private Order order;
+	public List<BookToCartItem> getBookToCartItemList() {
+		return bookToCartItemList;
+	}
 
-    @Transient
-    public void updateSubtotal() {
-        if (book != null && qty != null) {
-            this.subtotal = book.getOurPrice().multiply(new BigDecimal(qty));
-        } else {
-            this.subtotal = BigDecimal.ZERO;
-        }
-    }
+	public void setBookToCartItemList(List<BookToCartItem> bookToCartItemList) {
+		this.bookToCartItemList = bookToCartItemList;
+	}
+
+	public ShoppingCart getShoppingCart() {
+		return shoppingCart;
+	}
+
+	public void setShoppingCart(ShoppingCart shoppingCart) {
+		this.shoppingCart = shoppingCart;
+	}
+
+	public Order getOrder() {
+		return order;
+	}
+
+	public void setOrder(Order order) {
+		this.order = order;
+	}
 }
