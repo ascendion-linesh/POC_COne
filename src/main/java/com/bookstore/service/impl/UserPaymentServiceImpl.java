@@ -1,5 +1,7 @@
 package com.bookstore.service.impl;
 
+import java.util.Optional;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -10,14 +12,14 @@ import com.bookstore.service.UserPaymentService;
 @Service
 public class UserPaymentServiceImpl implements UserPaymentService{
 
-	@Autowired
-	private UserPaymentRepository userPaymentRepository;
-		
-	public UserPayment findById(Long id) {
-		return userPaymentRepository.findOne(id);
-	}
-	
-	public void removeById(Long id) {
-		userPaymentRepository.delete(id);
-	}
-} 
+    @Autowired
+    private UserPaymentRepository userPaymentRepository;
+        
+    public Optional<UserPayment> findById(Long id) {
+        return userPaymentRepository.findById(id);
+    }
+    
+    public void removeById(Long id) {
+        userPaymentRepository.deleteById(id);
+    }
+}
