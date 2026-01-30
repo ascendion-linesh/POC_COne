@@ -9,8 +9,6 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import com.bookstore.domain.User;
-import com.bookstore.domain.security.Role;
-import com.bookstore.domain.security.UserRole;
 import com.bookstore.service.UserService;
 import com.bookstore.utility.SecurityUtility;
 
@@ -32,12 +30,10 @@ public class BookstoreApplication implements CommandLineRunner {
 		user1.setUsername("j");
 		user1.setPassword(SecurityUtility.passwordEncoder().encode("p"));
 		user1.setEmail("JAdams@gmail.com");
-		Set<UserRole> userRoles = new HashSet<>();
-		Role role1 = new Role();
-		role1.setRoleId(1);
-		role1.setName("ROLE_USER");
-		userRoles.add(new UserRole(user1, role1));
 		
-		userService.createUser(user1, userRoles);
+		Set<String> roleNames = new HashSet<>();
+		roleNames.add("ROLE_USER");
+		
+		userService.createUser(user1, roleNames);
 	}
 }
