@@ -1,6 +1,5 @@
 package com.bookstore.config;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -16,39 +15,24 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = true)
+@EnableMethodSecurity(prePostEnabled = true, securedEnabled = true)
 public class SecurityConfig {
 
-    @Autowired
-    private UserDetailsService userSecurityService;
+    private final UserDetailsService userDetailsService;
 
-    private static final String[] PUBLIC_MATCHERS = {
-            "/css/**",
-            "/js/**",
-            "/image/**",
-            "/",
-            "/myAccount",
-            "/newUser",
-            "/forgetPassword",
-            "/login",
-            "/fonts/**",
-            "/bookshelf",
-            "/bookDetail/**",
-            "/hours",
-            "/faq",
-            "/searchByCategory",
-            "/searchBook"
-    };
+    public SecurityConfig(UserDetailsService userDetailsService) {
+        this.userDetailsService = userDetailsService;
+    }
 
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        return new BCryptPasswordEncoder(12);
     }
 
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userSecurityService);
+        authProvider.setUserDetailsService(userDetailsService);
         authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
     }
@@ -63,22 +47,35 @@ public class SecurityConfig {
         http
             .authenticationProvider(authenticationProvider())
             .authorizeHttpRequests(authz -> authz
-                .requestMatchers(PUBLIC_MATCHERS).permitAll()
+                .requestMatchers("/css/**", "/js/**", "/image/**", "/fonts/**").permitAll()
+                .requestMatchers("/", "/index", "/myAccount", "/newUser", "/forgetPassword").permitAll()
+                .requestMatchers("/bookshelf", "/bookDetail/**", "/hours", "/faq", "/searchByCategory", "/searchBook").permitAll()
+                .requestMatchers("/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
-            .csrf(csrf -> csrf.disable())
-            .cors(cors -> cors.disable())
             .formLogin(form -> form
                 .loginPage("/login")
-                .defaultSuccessUrl("/")
+                .defaultSuccessUrl("/", true)
                 .failureUrl("/login?error")
                 .permitAll()
             )
             .logout(logout -> logout
                 .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
                 .logoutSuccessUrl("/?logout")
-                .deleteCookies("remember-me")
+                .deleteCookies("JSESSIONID", "remember-me")
+                .invalidateHttpSession(true)
+                .clearAuthentication(true)
                 .permitAll()
+            )
+            .csrf(csrf -> csrf
+                .ignoringRequestMatchers("/h2-console/**")
+            )
+            .headers(headers -> headers
+                .frameOptions(frame -> frame.sameOrigin())
+            )
+            .sessionManagement(session -> session
+                .maximumSessions(1)
+                .maxSessionsPreventsLogin(false)
             )
             .rememberMe(remember -> remember
                 .key("uniqueAndSecret")
