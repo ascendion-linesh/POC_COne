@@ -37,6 +37,7 @@ public class MailConstructor {
 		email.setText(url+message);
 		email.setFrom(env.getProperty("support.email"));
 		return email;
+		
 	}
 	
 	public MimeMessagePreparator constructOrderConfirmationEmail (User user, Order order, Locale locale) {
