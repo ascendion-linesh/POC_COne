@@ -1,32 +1,42 @@
 package com.bookstore.utility;
 
-import java.security.SecureRandom;
-import java.util.Random;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.security.SecureRandom;
+
 @Component
 public class SecurityUtility {
-	private static final String SALT = "salt"; // Salt should be protected carefully
-	
-	@Bean
-	public static BCryptPasswordEncoder passwordEncoder() {
-		return new BCryptPasswordEncoder(12, new SecureRandom(SALT.getBytes()));
-	}
-	
-	@Bean
-	public static String randomPassword() {
-		String SALTCHARS = "ABCEFGHIJKLMNOPQRSTUVWXYZ1234567890";
-		StringBuilder salt = new StringBuilder();
-		Random rnd = new Random();
-		
-		while (salt.length()<18) {
-			int index= (int) (rnd.nextFloat()*SALTCHARS.length());
-			salt.append(SALTCHARS.charAt(index));
-		}
-		String saltStr = salt.toString();
-		return saltStr;
-	}
+
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
+    @Bean
+    public static BCryptPasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder(12, SECURE_RANDOM);
+    }
+
+    /**
+     * Generates a secure random salt for password hashing
+     * @return byte array containing random salt
+     */
+    public static byte[] generateSalt() {
+        byte[] salt = new byte[16];
+        SECURE_RANDOM.nextBytes(salt);
+        return salt;
+    }
+
+    /**
+     * Generates a random string for tokens
+     * @return random string
+     */
+    public static String randomString() {
+        byte[] buffer = new byte[32];
+        SECURE_RANDOM.nextBytes(buffer);
+        StringBuilder sb = new StringBuilder();
+        for (byte b : buffer) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
+    }
 }
