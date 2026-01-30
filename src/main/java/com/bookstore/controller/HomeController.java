@@ -9,8 +9,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.websocket.server.PathParam;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
@@ -109,14 +108,14 @@ public class HomeController {
 		
 		List<Book> bookList = bookService.findAll();
 		model.addAttribute("bookList", bookList);
-		model.addAttribute("activeAll",true);
+		model.addAttribute("activeAll", true);
 		
 		return "bookshelf";
 	}
 	
 	@RequestMapping("/bookDetail")
 	public String bookDetail(
-			@PathParam("id") Long id, Model model, Principal principal
+			@RequestParam("id") Long id, Model model, Principal principal
 			) {
 		if(principal != null) {
 			String username = principal.getName();
@@ -169,7 +168,6 @@ public class HomeController {
 		mailSender.send(newEmail);
 		
 		model.addAttribute("forgetPasswordEmailSent", "true");
-		
 		
 		return "myAccount";
 	}
@@ -243,7 +241,6 @@ public class HomeController {
 		
 		UserBilling userBilling = new UserBilling();
 		UserPayment userPayment = new UserPayment();
-		
 		
 		model.addAttribute("userBilling", userBilling);
 		model.addAttribute("userPayment", userPayment);
@@ -321,7 +318,6 @@ public class HomeController {
 		
 		return "myProfile";
 	}
-	
 	
 	@RequestMapping("/updateCreditCard")
 	public String updateCreditCard(
@@ -526,7 +522,6 @@ public class HomeController {
 		return "myAccount";
 	}
 	
-
 	@RequestMapping("/newUser")
 	public String newUser(Locale locale, @RequestParam("token") String token, Model model) {
 		PasswordResetToken passToken = userService.getPasswordResetToken(token);
@@ -566,7 +561,6 @@ public class HomeController {
 			throw new Exception ("User not found");
 		}
 		
-		/*check email already exists*/
 		if (userService.findByEmail(user.getEmail())!=null) {
 			if(userService.findByEmail(user.getEmail()).getId() != currentUser.getId()) {
 				model.addAttribute("emailExists", true);
@@ -574,7 +568,6 @@ public class HomeController {
 			}
 		}
 		
-		/*check username already exists*/
 		if (userService.findByUsername(user.getUsername())!=null) {
 			if(userService.findByUsername(user.getUsername()).getId() != currentUser.getId()) {
 				model.addAttribute("usernameExists", true);
@@ -582,7 +575,6 @@ public class HomeController {
 			}
 		}
 		
-//		update password
 		if (newPassword != null && !newPassword.isEmpty() && !newPassword.equals("")){
 			BCryptPasswordEncoder passwordEncoder = SecurityUtility.passwordEncoder();
 			String dbPassword = currentUser.getPassword();
@@ -655,8 +647,4 @@ public class HomeController {
 			return "myProfile";
 		}
 	}
-	
-	
-	
-	
 }
