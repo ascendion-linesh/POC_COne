@@ -1,204 +1,183 @@
 package com.bookstore.domain;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.io.Serializable;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import com.bookstore.domain.security.Authority;
+import com.bookstore.domain.security.UserRole;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
-@Table(name = "user")
-public class User implements UserDetails, Serializable {
-
-    private static final long serialVersionUID = 902783495L;
-
+public class User implements UserDetails{
+    
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id", nullable = false, updatable = false)
+    @GeneratedValue(strategy=GenerationType.AUTO)
+    @Column(name="id", nullable = false, updatable = false)
     private Long id;
-
-    @NotBlank(message = "Username is required")
-    @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
-    @Column(name = "username", unique = true, nullable = false)
     private String username;
-
-    @NotBlank(message = "Password is required")
-    @Size(min = 8, message = "Password must be at least 8 characters")
-    @Column(name = "password", nullable = false)
     private String password;
-
-    @NotBlank(message = "First name is required")
-    @Column(name = "first_name", nullable = false)
     private String firstName;
-
-    @NotBlank(message = "Last name is required")
-    @Column(name = "last_name", nullable = false)
     private String lastName;
-
-    @NotBlank(message = "Email is required")
-    @Email(message = "Email should be valid")
-    @Column(name = "email", unique = true, nullable = false)
+    
+    @Column(name="email", nullable = false, updatable = false)
     private String email;
-
-    @Column(name = "phone")
     private String phone;
-
-    @Column(name = "enabled")
-    private boolean enabled = true;
-
+    private boolean enabled=true;
+    
     @OneToOne(cascade = CascadeType.ALL, mappedBy = "user")
-    @JsonIgnore
     private ShoppingCart shoppingCart;
-
+    
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "user")
-    @JsonIgnore
-    private Set<UserShipping> userShippingList = new HashSet<>();
-
+    private List<UserShipping> userShippingList;
+    
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "user")
+    private List<UserPayment> userPaymentList;
+    
+    @OneToMany(mappedBy = "user")
+    private List<Order> orderList;
+    
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JsonIgnore
-    private Set<UserPayment> userPaymentList = new HashSet<>();
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    @JsonIgnore
-    private Set<Order> orderList = new HashSet<>();
-
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-        name = "user_role",
-        joinColumns = @JoinColumn(name = "user_id"),
-        inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
-    private Set<Role> roles = new HashSet<>();
-
+    private Set<UserRole> userRoles = new HashSet<>();
+    
     public Long getId() {
         return id;
     }
-
+    
     public void setId(Long id) {
         this.id = id;
     }
-
+    
     public String getUsername() {
         return username;
     }
-
+    
     public void setUsername(String username) {
         this.username = username;
     }
-
+    
     public String getPassword() {
         return password;
     }
-
+    
     public void setPassword(String password) {
         this.password = password;
     }
-
+    
     public String getFirstName() {
         return firstName;
     }
-
+    
     public void setFirstName(String firstName) {
         this.firstName = firstName;
     }
-
+    
     public String getLastName() {
         return lastName;
     }
-
+    
     public void setLastName(String lastName) {
         this.lastName = lastName;
     }
-
+    
     public String getEmail() {
         return email;
     }
-
+    
     public void setEmail(String email) {
         this.email = email;
     }
-
+    
     public String getPhone() {
         return phone;
     }
-
+    
     public void setPhone(String phone) {
         this.phone = phone;
     }
-
+    
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
-
+    
+    public Set<UserRole> getUserRoles() {
+        return userRoles;
+    }
+    
+    public void setUserRoles(Set<UserRole> userRoles) {
+        this.userRoles = userRoles;
+    }
+    
+    public List<UserShipping> getUserShippingList() {
+        return userShippingList;
+    }
+    
+    public void setUserShippingList(List<UserShipping> userShippingList) {
+        this.userShippingList = userShippingList;
+    }
+    
+    public List<UserPayment> getUserPaymentList() {
+        return userPaymentList;
+    }
+    
+    public void setUserPaymentList(List<UserPayment> userPaymentList) {
+        this.userPaymentList = userPaymentList;
+    }
+    
     public ShoppingCart getShoppingCart() {
         return shoppingCart;
     }
-
+    
     public void setShoppingCart(ShoppingCart shoppingCart) {
         this.shoppingCart = shoppingCart;
     }
-
-    public Set<UserShipping> getUserShippingList() {
-        return userShippingList;
-    }
-
-    public void setUserShippingList(Set<UserShipping> userShippingList) {
-        this.userShippingList = userShippingList;
-    }
-
-    public Set<UserPayment> getUserPaymentList() {
-        return userPaymentList;
-    }
-
-    public void setUserPaymentList(Set<UserPayment> userPaymentList) {
-        this.userPaymentList = userPaymentList;
-    }
-
-    public Set<Order> getOrderList() {
+    
+    public List<Order> getOrderList() {
         return orderList;
     }
-
-    public void setOrderList(Set<Order> orderList) {
+    
+    public void setOrderList(List<Order> orderList) {
         this.orderList = orderList;
     }
-
-    public Set<Role> getRoles() {
-        return roles;
-    }
-
-    public void setRoles(Set<Role> roles) {
-        this.roles = roles;
-    }
-
+    
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        Set<GrantedAuthority> authorities = new HashSet<>();
-        roles.forEach(role -> authorities.add(new Authority(role.getName())));
-        return authorities;
+        Set<GrantedAuthority> authorites = new HashSet<>();
+        userRoles.forEach(ur -> authorites.add(new Authority(ur.getRole().getName())));
+        
+        return authorites;
     }
-
+    
     @Override
     public boolean isAccountNonExpired() {
         return true;
     }
-
+    
     @Override
     public boolean isAccountNonLocked() {
         return true;
     }
-
+    
     @Override
     public boolean isCredentialsNonExpired() {
         return true;
     }
-
+    
     @Override
     public boolean isEnabled() {
         return enabled;
