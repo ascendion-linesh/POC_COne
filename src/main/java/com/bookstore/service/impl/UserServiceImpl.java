@@ -1,7 +1,7 @@
 package com.bookstore.service.impl;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -25,7 +25,7 @@ import com.bookstore.repository.UserShippingRepository;
 import com.bookstore.service.UserService;
 
 @Service
-public class UserServiceImpl implements UserService{
+public class UserServiceImpl implements UserService {
 	
 	private static final Logger LOG = LoggerFactory.getLogger(UserService.class);
 	
@@ -61,13 +61,14 @@ public class UserServiceImpl implements UserService{
 	}
 	
 	@Override
-	public User findById(Long id){
-		return userRepository.findOne(id);
+	public User findByEmail (String email) {
+		return userRepository.findByEmail(email);
 	}
 	
 	@Override
-	public User findByEmail (String email) {
-		return userRepository.findByEmail(email);
+	public User findById(Long id) {
+		Optional<User> userOptional = userRepository.findById(id);
+		return userOptional.orElse(null);
 	}
 	
 	@Override
@@ -88,8 +89,8 @@ public class UserServiceImpl implements UserService{
 			shoppingCart.setUser(user);
 			user.setShoppingCart(shoppingCart);
 			
-			user.setUserShippingList(new ArrayList<UserShipping>());
-			user.setUserPaymentList(new ArrayList<UserPayment>());
+			user.setUserShippingList(new java.util.ArrayList<UserShipping>());
+			user.setUserPaymentList(new java.util.ArrayList<UserPayment>());
 			
 			localUser = userRepository.save(user);
 		}
@@ -149,5 +150,4 @@ public class UserServiceImpl implements UserService{
 			}
 		}
 	}
-
 }
