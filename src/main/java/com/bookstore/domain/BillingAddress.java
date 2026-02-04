@@ -5,20 +5,42 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToOne;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 @Entity
 public class BillingAddress {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.AUTO)
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
-	private String BillingAddressName;
-	private String BillingAddressStreet1;
-	private String BillingAddressStreet2;
-	private String BillingAddressCity;
-	private String BillingAddressState;
-	private String BillingAddressCountry;
-	private String BillingAddressZipcode;
+	
+	@NotBlank(message = "Billing address name is required")
+	@Size(max = 100, message = "Name must not exceed 100 characters")
+	private String billingAddressName;
+	
+	@NotBlank(message = "Street address is required")
+	@Size(max = 200, message = "Street address must not exceed 200 characters")
+	private String billingAddressStreet1;
+	
+	@Size(max = 200, message = "Street address must not exceed 200 characters")
+	private String billingAddressStreet2;
+	
+	@NotBlank(message = "City is required")
+	@Size(max = 100, message = "City must not exceed 100 characters")
+	private String billingAddressCity;
+	
+	@NotBlank(message = "State is required")
+	@Size(max = 50, message = "State must not exceed 50 characters")
+	private String billingAddressState;
+	
+	@NotBlank(message = "Country is required")
+	@Size(max = 100, message = "Country must not exceed 100 characters")
+	private String billingAddressCountry;
+	
+	@NotBlank(message = "Zipcode is required")
+	@Size(max = 20, message = "Zipcode must not exceed 20 characters")
+	private String billingAddressZipcode;
 	
 	@OneToOne
 	private Order order;
@@ -32,59 +54,59 @@ public class BillingAddress {
 	}
 
 	public String getBillingAddressName() {
-		return BillingAddressName;
+		return billingAddressName;
 	}
 
 	public void setBillingAddressName(String billingAddressName) {
-		BillingAddressName = billingAddressName;
+		this.billingAddressName = billingAddressName;
 	}
 
 	public String getBillingAddressStreet1() {
-		return BillingAddressStreet1;
+		return billingAddressStreet1;
 	}
 
 	public void setBillingAddressStreet1(String billingAddressStreet1) {
-		BillingAddressStreet1 = billingAddressStreet1;
+		this.billingAddressStreet1 = billingAddressStreet1;
 	}
 
 	public String getBillingAddressStreet2() {
-		return BillingAddressStreet2;
+		return billingAddressStreet2;
 	}
 
 	public void setBillingAddressStreet2(String billingAddressStreet2) {
-		BillingAddressStreet2 = billingAddressStreet2;
+		this.billingAddressStreet2 = billingAddressStreet2;
 	}
 
 	public String getBillingAddressCity() {
-		return BillingAddressCity;
+		return billingAddressCity;
 	}
 
 	public void setBillingAddressCity(String billingAddressCity) {
-		BillingAddressCity = billingAddressCity;
+		this.billingAddressCity = billingAddressCity;
 	}
 
 	public String getBillingAddressState() {
-		return BillingAddressState;
+		return billingAddressState;
 	}
 
 	public void setBillingAddressState(String billingAddressState) {
-		BillingAddressState = billingAddressState;
+		this.billingAddressState = billingAddressState;
 	}
 
 	public String getBillingAddressCountry() {
-		return BillingAddressCountry;
+		return billingAddressCountry;
 	}
 
 	public void setBillingAddressCountry(String billingAddressCountry) {
-		BillingAddressCountry = billingAddressCountry;
+		this.billingAddressCountry = billingAddressCountry;
 	}
 
 	public String getBillingAddressZipcode() {
-		return BillingAddressZipcode;
+		return billingAddressZipcode;
 	}
 
 	public void setBillingAddressZipcode(String billingAddressZipcode) {
-		BillingAddressZipcode = billingAddressZipcode;
+		this.billingAddressZipcode = billingAddressZipcode;
 	}
 
 	public Order getOrder() {
@@ -94,5 +116,4 @@ public class BillingAddress {
 	public void setOrder(Order order) {
 		this.order = order;
 	}
-
 }
