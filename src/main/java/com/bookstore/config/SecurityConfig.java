@@ -5,14 +5,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
+import org.springframework.security.web.authentication.rememberme.JdbcTokenRepositoryImpl;
+import org.springframework.security.web.authentication.rememberme.PersistentTokenRepository;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
@@ -22,6 +22,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import com.bookstore.service.impl.UserSecurityService;
 import com.bookstore.utility.SecurityUtility;
 
+import jakarta.sql.DataSource;
 import java.util.Arrays;
 
 @Configuration
@@ -34,6 +35,9 @@ public class SecurityConfig {
 
 	@Autowired
 	private UserSecurityService userSecurityService;
+	
+	@Autowired
+	private DataSource dataSource;
 
 	@Bean
 	public BCryptPasswordEncoder passwordEncoder() {
@@ -64,11 +68,10 @@ public class SecurityConfig {
 				.requestMatchers(PUBLIC_MATCHERS).permitAll()
 				.anyRequest().authenticated()
 			)
-			// CRITICAL FIX: CSRF PROTECTION ENABLED
 			.csrf(csrf -> csrf
 				.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+				.ignoringRequestMatchers("/h2-console/**")
 			)
-			// Secure CORS configuration
 			.cors(cors -> cors.configurationSource(corsConfigurationSource()))
 			.formLogin(form -> form
 				.loginPage("/login")
@@ -84,8 +87,14 @@ public class SecurityConfig {
 				.permitAll()
 			)
 			.rememberMe(remember -> remember
-				.key("uniqueAndSecret")
+				.tokenRepository(persistentTokenRepository())
 				.tokenValiditySeconds(86400)
+				.key(env.getProperty("remember.me.key", "uniqueAndSecretKey"))
+				.userDetailsService(userSecurityService)
+			)
+			.sessionManagement(session -> session
+				.maximumSessions(1)
+				.maxSessionsPreventsLogin(false)
 			);
 
 		return http.build();
@@ -94,7 +103,9 @@ public class SecurityConfig {
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
-		configuration.setAllowedOrigins(Arrays.asList("http://localhost:8080"));
+		configuration.setAllowedOrigins(Arrays.asList(
+			env.getProperty("cors.allowed.origins", "http://localhost:8080")
+		));
 		configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 		configuration.setAllowedHeaders(Arrays.asList("*"));
 		configuration.setAllowCredentials(true);
@@ -106,15 +117,19 @@ public class SecurityConfig {
 	}
 
 	@Bean
-	public DaoAuthenticationProvider authenticationProvider() {
-		DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-		authProvider.setUserDetailsService(userSecurityService);
-		authProvider.setPasswordEncoder(passwordEncoder());
-		return authProvider;
+	public PersistentTokenRepository persistentTokenRepository() {
+		JdbcTokenRepositoryImpl tokenRepository = new JdbcTokenRepositoryImpl();
+		tokenRepository.setDataSource(dataSource);
+		return tokenRepository;
 	}
 
 	@Bean
-	public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
-		return authConfig.getAuthenticationManager();
+	public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
+		AuthenticationManagerBuilder authenticationManagerBuilder = 
+			http.getSharedObject(AuthenticationManagerBuilder.class);
+		authenticationManagerBuilder
+			.userDetailsService(userSecurityService)
+			.passwordEncoder(passwordEncoder());
+		return authenticationManagerBuilder.build();
 	}
 }
