@@ -2,6 +2,7 @@ package com.bookstore.service.impl;
 
 import java.util.Calendar;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -20,7 +21,6 @@ import com.bookstore.service.OrderService;
 
 @Service
 public class OrderServiceImpl implements OrderService{
-	
 	@Autowired
 	private OrderRepository orderRepository;
 	
@@ -61,7 +61,7 @@ public class OrderServiceImpl implements OrderService{
 	}
 	
 	public Order findOne(Long id) {
-		return orderRepository.findOne(id);
+		Optional<Order> orderOptional = orderRepository.findById(id);
+		return orderOptional.orElse(null);
 	}
-
 }
