@@ -17,8 +17,14 @@ import org.thymeleaf.context.Context;
 import com.bookstore.domain.Order;
 import com.bookstore.domain.User;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Component
 public class MailConstructor {
+	
+	private static final Logger logger = LoggerFactory.getLogger(MailConstructor.class);
+	
 	@Autowired
 	private Environment env;
 	
@@ -26,38 +32,48 @@ public class MailConstructor {
 	private TemplateEngine templateEngine;
 	
 	public SimpleMailMessage constructResetTokenEmail(
-			String contextPath, Locale locale, String token, User user, String password
-			) {
+			String contextPath, 
+			Locale locale, 
+			String token, 
+			User user, 
+			String password
+	) {
+		String url = contextPath + "/newUser?token=" + token;
+		String message = "\nPlease click on this link to verify your email and edit your personal information. Your password is: \n" + password;
 		
-		String url = contextPath + "/newUser?token="+token;
-		String message = "\nPlease click on this link to verify your email and edit your personal information. Your password is: \n"+password;
 		SimpleMailMessage email = new SimpleMailMessage();
 		email.setTo(user.getEmail());
-		email.setSubject("Le's Bookstore - New User");
-		email.setText(url+message);
-		email.setFrom(env.getProperty("support.email"));
-		return email;
+		email.setSubject("Bookstore - New User Registration");
+		email.setText(url + message);
+		email.setFrom(env.getProperty("support.email", "noreply@bookstore.com"));
 		
+		return email;
 	}
 	
-	public MimeMessagePreparator constructOrderConfirmationEmail (User user, Order order, Locale locale) {
+	public MimeMessagePreparator constructOrderConfirmationEmail(
+			User user, 
+			Order order, 
+			Locale locale
+	) {
 		Context context = new Context();
 		context.setVariable("order", order);
 		context.setVariable("user", user);
 		context.setVariable("cartItemList", order.getCartItemList());
 		String text = templateEngine.process("orderConfirmationEmailTemplate", context);
 		
-		MimeMessagePreparator messagePreparator = new MimeMessagePreparator() {
-			@Override
-			public void prepare(MimeMessage mimeMessage) throws Exception {
-				MimeMessageHelper email = new MimeMessageHelper(mimeMessage);
+		return mimeMessage -> {
+			try {
+				MimeMessageHelper email = new MimeMessageHelper(mimeMessage, true, "UTF-8");
 				email.setTo(user.getEmail());
-				email.setSubject("Order Confirmation - "+order.getId());
+				email.setSubject("Order Confirmation - " + order.getId());
 				email.setText(text, true);
-				email.setFrom(new InternetAddress("ray.deng83@gmail.com"));
+				email.setFrom(new InternetAddress(
+					env.getProperty("support.email", "noreply@bookstore.com")
+				));
+			} catch (Exception e) {
+				logger.error("Failed to construct order confirmation email", e);
+				throw new RuntimeException("Email construction failed", e);
 			}
 		};
-		
-		return messagePreparator;
 	}
 }
