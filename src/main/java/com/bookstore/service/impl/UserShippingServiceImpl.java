@@ -1,5 +1,7 @@
 package com.bookstore.service.impl;
 
+import java.util.Optional;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -8,18 +10,17 @@ import com.bookstore.repository.UserShippingRepository;
 import com.bookstore.service.UserShippingService;
 
 @Service
-public class UserShippingServiceImpl implements UserShippingService{
+public class UserShippingServiceImpl implements UserShippingService {
 	
 	@Autowired
 	private UserShippingRepository userShippingRepository;
 	
-	
 	public UserShipping findById(Long id) {
-		return userShippingRepository.findOne(id);
+		Optional<UserShipping> userShippingOptional = userShippingRepository.findById(id);
+		return userShippingOptional.orElse(null);
 	}
 	
 	public void removeById(Long id) {
-		userShippingRepository.delete(id);
+		userShippingRepository.deleteById(id);
 	}
-
 }
